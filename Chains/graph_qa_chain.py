@@ -4,6 +4,7 @@ import openai
 from langchain_openai import ChatOpenAI
 from langchain.chains import RetrievalQA, GraphCypherQAChain
 from langchain_community.graphs import Neo4jGraph
+import json
 
 # Import Custom Libraries
 # from Prompts.prompt_template import create_few_shot_prompt, create_few_shot_prompt_with_context
@@ -21,6 +22,8 @@ graph = Neo4jGraph(
     password=GLKB_PASSWORD,
     refresh_schema=False
 )
+schema = json.load(open(config.GLKB_SCHEMA))
+graph.structured_schema = schema
 
 # Instantiate a openai model
 llm = ChatOpenAI(
@@ -44,6 +47,28 @@ def get_graph_qa_chain(state: GraphState):
             cypher_prompt = prompt,
             # return_intermediate_steps = True,
             return_direct = True,
+            include_types=['Article', 
+                'Journal', 
+                'Vocabulary', 
+                'Cite', 
+                'ContainTerm', 
+                'Contain', 
+                'PublishedIn',
+                'ChemicalAffectsGeneAssociation',
+                'ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation',
+                'ChemicalToChemicalAssociation',
+                'DiseaseToPhenotypicFeatureAssociation',
+                'ExposureEventToOutcomeAssociation',
+                'GeneToDiseaseAssociation',
+                'GeneToExpressionSiteAssociation',
+                'GeneToGeneAssociation',
+                'GeneToGoTermAssociation',
+                'GeneToPathwayAssociation',
+                'HierarchicalStructure',
+                'VariantToDiseaseAssociation',
+                'VariantToGeneAssociation',
+                'OntologyMapping'],
+            exclude_types=[]
         )
     return graph_qa_chain
 
