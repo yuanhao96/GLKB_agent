@@ -9,7 +9,8 @@ import config
 from Chains.vector_graph_chain import get_vector_graph_chain
 from Chains.graph_qa_chain import get_graph_qa_chain, get_graph_qa_chain_with_context
 from Chains.rag_qa import answer_generator
-from Chains.decompose import query_analyzer2
+from Chains.decompose import query_analyzer, question_planner
+from Chains.router import question_router
 from Prompts.prompt_template import create_few_shot_prompt, create_few_shot_prompt_with_context
 from Prompts.prompt_examples import examples
 from Graph.state import GraphState
@@ -33,39 +34,93 @@ llm = ChatOpenAI(
     api_key=config.OPENAI_API_KEY
 )
 
-def decomposer(state: GraphState):
-    
+def planner(state: GraphState):
     '''Returns a dictionary of at least one of the GraphState'''    
-    '''Decompose a given question to sub-queries'''
+    '''Break down a given question to steps'''
     
     question = state["question"]
-    subqueries = query_analyzer2.invoke(question)
-    return {"subqueries": subqueries, "question":question}
-    
-def vector_search(state: GraphState):
-    
-    ''' Returns a dictionary of at least one of the GraphState'''
-    ''' Perform a vector similarity search and return article id as a parsed output'''
+    steps = question_planner.invoke(question)
+    return {"steps": steps, "question":question}
 
-    question = state["question"]
-    queries = state["subqueries"]
+def router(state: GraphState):
+    '''Returns a dictionary of at least one of the GraphState'''    
+    '''Route question to graph query or vector search'''
+
+    steps = state["steps"]
+    query_types = []
+    for step in steps.steps:
+        query_types.append(question_router.invoke(step))
+    steps.query_types = query_types
+    return {'steps': steps}
+
+# def decomposer(state: GraphState):
+#     '''Returns a dictionary of at least one of the GraphState'''    
+#     '''Decompose a given step to sub-queries'''
+    
+#     question = state["question"]
+#     subqueries = query_analyzer.invoke(question)
+#     return {"subqueries": subqueries, "question":question}
+
+def retrieve_context(state: GraphState):
+    '''Returns a dictionary of at least one of the GraphState'''    
+    '''Retrieve context of each step according to their types'''
+
+    steps = state["steps"]
     
     k = 3
     vector_graph_chain = get_vector_graph_chain(k=k)
+    state['prompt'] = create_few_shot_prompt()
+    # state['prompt_context'] = []
+    # state['prompt_with_context'] = create_few_shot_prompt_with_context(state)
+    graph_qa_chain = get_graph_qa_chain(state)
+    graph_qa_chain_context = get_graph_qa_chain_with_context(state)
+
+    contexts = dict()
+
+    for step, qtype in zip(steps.steps, steps.query_types):
+        if qtype.datasource == "vector search":
+            chain_result = vector_graph_chain.invoke({
+                "query": step},
+            )
+            documents = [DocumentModel(**doc.dict()) for doc in chain_result['source_documents']]
+            extracted_data = [{"title": doc.extract_title(), "abstract":doc.extract_abstract(), "pubmedid": doc.metadata.article_id} for doc in documents]
+            contexts[step] = extracted_data
+        # elif qtype.datasource == "graph query":
+        #     subqueries = query_analyzer.invoke(step).sub_query
+        #     for sub in subqueries:
+        #         if len(prompt_context) == 0: # no context
+        #             res = graph_qa_chain.invoke(sub)
+        #         else:
+        #             res = graph_qa_chain_context.invoke(sub)
+        #         state['prompt_context'].append((sub, res))
+        #     contexts[step] = res
+    return {'context': contexts}
+
+
+
+# def vector_search(state: GraphState):
     
-    article_ids = []
-    extracted_data = []
-    documents = []
-    for q in queries:
-        chain_result = vector_graph_chain.invoke({
-            "query": q.sub_query},
-        )
-        # Convert the result to a list of DocumentModel instances
-        documents += [DocumentModel(**doc.dict()) for doc in chain_result['source_documents']]
-        extracted_data += [{"title": doc.extract_title(), "abstract":doc.extract_abstract(), "pubmedid": doc.metadata.article_id} for doc in documents]
-        article_ids += [("pubmedid", doc.metadata.article_id) for doc in documents]
+#     ''' Returns a dictionary of at least one of the GraphState'''
+#     ''' Perform a vector similarity search and return article id as a parsed output'''
+
+#     question = state["question"]
+#     queries = state["subqueries"]
     
-    return {"article_ids": article_ids, "documents": extracted_data, "question": question, "subqueries": queries}
+#     k = 3
+#     vector_graph_chain = get_vector_graph_chain(k=k)
+    
+#     extracted_data = []
+#     documents = []
+#     for q in queries:
+#         chain_result = vector_graph_chain.invoke({
+#             "query": q.sub_query},
+#         )
+#         # Convert the result to a list of DocumentModel instances
+#         documents += [DocumentModel(**doc.dict()) for doc in chain_result['source_documents']]
+#         extracted_data += [{"title": doc.extract_title(), "abstract":doc.extract_abstract(), "pubmedid": doc.metadata.article_id} for doc in documents]
+#         # article_ids += [("pubmedid", doc.metadata.article_id) for doc in documents]
+    
+#     return {"documents": extracted_data, "question": question, "subqueries": queries}
 
 
 def prompt_template(state: GraphState):
@@ -92,7 +147,6 @@ def graph_qa(state: GraphState):
     
     result = graph_qa_chain.invoke(
         {
-            #"context": graph.schema, 
             "query": question,
         },
     )
@@ -110,8 +164,6 @@ def prompt_template_with_context(state: GraphState):
     prompt_with_context = create_few_shot_prompt_with_context(state)
     
     return {"prompt_with_context": prompt_with_context, "question":question, "subqueries": queries}
-
-
 
 def graph_qa_with_context(state: GraphState):
     
@@ -143,13 +195,11 @@ def generate_rag_answer(state: GraphState):
         state (dict): New key added to state, generation, that contains LLM generation
     """
     question = state["question"]
-    documents = state["documents"]
-    article_ids = state["article_ids"]
-    subqueries = state["subqueries"]
+    context = state["context"]
 
     # RAG generation
-    generation = answer_generator.invoke({"documents": documents, "question": question}).content
+    generation = answer_generator.invoke({"context": context, "question": question}).content
     
-    return {"article_ids": article_ids, "documents": documents, "question": question, "subqueries": subqueries, "answer":generation}
+    return {"answer": generation}
 
 

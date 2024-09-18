@@ -1,118 +1,90 @@
 examples= [
     {
-        "question": "What are the articles connected to the given titles?",
-        "query": "MATCH (a:Article)-[:HAS_TITLE]->(t:Title) WHERE a.article_id = 'W2036181141' RETURN a.article_id, a.title",
-    },
-    {
-        "question": "Find author of the articles that are connected to the given titles?",
-        "query": "MATCH (a:Article)-[:HAS_TITLE]->(t:Title) WHERE a.article_id = 'W2036181141' MATCH (a)-[:WRITTEN_BY]->(au:Author) RETURN au.author_names",
-    },
-    {
-        "question": "What are the articles connected to the given titles?",
-        "query": "MATCH (a:Article)-[:HAS_TITLE]->(t:Title) WHERE a.article_id = 'W2036181141' MATCH (a)-[:WRITTEN_BY]->(au:Author)-[:AFFILLIATED_TO]-(inst:Institution) RETURN a.title, au.author_names, inst.institution_name",
+        "question": "What is the articles with PubMed ID 23?",
+        "query": "MATCH (a:Article) WHERE a.pubmedid = '23' RETURN a.title, a.authors, a.pubdate",
     },
     {
         "question": "How many articles have citation > 50? Return their title and authors",
-        "query": "MATCH (a:Article)-[:WRITTEN_BY]->(au:Author) WHERE a.citation_count > 50  RETURN a.title, au.author_names",
+        "query": "MATCH (a:Article) WHERE a.n_citation > 50  RETURN a.title, a.authors",
     },
     {
-        "question": "What are the articles published in a specific year?",
-        "query": "MATCH (a:Article) WHERE a.publication_year = year RETURN a.title",
+        "question": "Which gene is named TP53?",
+        "query": """CALL db.index.fulltext.queryNodes("vocabulary_Names", "'TP53'") YIELD node, score WITH node as n, score LIMIT 7 RETURN n.id, n.name, n.description ORDER BY CASE WHEN n.n_citation IS NOT NULL THEN n.n_citation ELSE 0 END DESC""",
     },
     {
-        "question": "How many articles does a particular author have?",
-        "query": "MATCH (au:Author)<-[:WRITTEN_BY]-(a:Article) WHERE au.name = 'Author Name' RETURN count(a)",
+        "question": "get the id of type 2 diabetes?",
+        "query": """CALL db.index.fulltext.queryNodes("vocabulary_Names", "'type 2 diabetes'") YIELD node, score WITH node as n, score LIMIT 7 RETURN n.id, n.name, n.description ORDER BY CASE WHEN n.n_citation IS NOT NULL THEN n.n_citation ELSE 0 END DESC""",
+    },
+    {
+        "question": "define breast cancer",
+        "query": """CALL db.index.fulltext.queryNodes("vocabulary_Names", "'breast cancer'") YIELD node, score WITH node as n, score LIMIT 7 RETURN n.id, n.name, n.description ORDER BY CASE WHEN n.n_citation IS NOT NULL THEN n.n_citation ELSE 0 END DESC""",
     },
     {
         "question": "What are the articles published in a specific journal?",
-        "query": "MATCH (a:Article)-[:PUBLISHED_IN]-(j:Journal) WHERE j.journal_name = 'Journal Name' RETURN a.title",
-    },
-    {
-        "question": "What are the articles authored by a specific author?", 
-        "query": "MATCH (author:Author)-[:WRITTEN_BY]->(a:Article) WHERE author.author_names = 'Author Name' RETURN a.title",
+        "query": "MATCH (a:Article)-[:PublishedIn]-(j:Journal) WHERE j.title = 'Journal Name' RETURN a.title",
     },
     {
         "question": "How many authors collaborated on a particular article?",
-        "query": "MATCH (a:Article)-[:WRITTEN_BY]-(au:Author) WHERE a.title = 'Title of the the article' RETURN count(au.author_names)",
+        "query": "MATCH (a:Article) WHERE a.pubmedid = 'PubMed ID' RETURN size(a.authors)",
     },
     {
-        "question": "Name the author who author a particular article and their institutions",
-        "query": "MATCH (a:Article)-[:WRITTEN_BY]-(au:Author) WHERE a.title = 'Title of the the article' RETURN au.author_names, au.institution_name",
+        "question": "Which article is with a specific title or abstract?",
+        "query": """CALL db.index.fulltext.queryNodes("article_Title", "'Title or Abstract'") YIELD node, score WITH node as n, score LIMIT 10 RETURN n.pubmedid, n.title, n.n_citation""",
     },
     {
-        "question": "What institutions are affiliated with a particular author?", 
-        "query": "MATCH (author:Author)-[:AFFILLIATED_TO]-(institution:Institution) WHERE author.author_names = 'Author Name' RETURN institution.institution_name",
+        "question": "What are the articles that cite a specific article?", 
+        "query": "MATCH (a:Article {{pubmedid: 'PubMed ID'}})<-[:Cite]-(c:Article) RETURN c.title",
     },
     {
-        "question": "How many authors are affiliated with a particular institution?",
-        "query": "MATCH (i:Institution)<-[:AFFILLIATED_TO]-(au:Author) WHERE i.institution_name = 'University Name' RETURN count(au)",
-    },
-    {
-        "question": "Find authors who are affiliated to a particular insitution",
-        "query": "MATCH (i:Institution)<-[:AFFILLIATED_TO]-(au:Author) WHERE i.institution_name = 'University Name' RETURN au.author_names",
-    },
-    {
-        "question": "What are the articles authored by authors affiliated with a University of Sheffield?", 
-        "query": "MATCH (i:Institution)<-[:AFFILLIATED_TO]-(au:Author)<-[:WRITTEN_BY]->(a:Article) WHERE i.institution_name = 'University of Sheffield' RETURN a.title",
-    },
-    {
-        "question": "What are the top 10 cited articles authored by authors affiliated with an institution?",
-        "query": "MATCH (i:Institution)-[:AFFILLIATED_TO]-(au:Author)-[:WRITTEN_BY]-(a:Article) WHERE i.institution_name='University of California, Santa Barbara' WITH a ORDER BY a.citation_count DESC RETURN a.title, a.citation_count LIMIT 10",
+        "question": "Based on the curated databases, what diseases are related to a specific gene?",
+        "query": "MATCH (v:Vocabulary {{id: 'hgnc:HGNC_ID'}})-[:GeneToDiseaseAssociation]->(d:Vocabulary) RETURN d.name, d.id, d.n_citation",
     },
     {
         "question": "What are the top journals by the number of articles published?",
-        "query": "MATCH (j:Journal)-[:PUBLISHED_IN]-(a:Article) RETURN j.journal_name, count(a) AS num_articles ORDER BY num_articles DESC LIMIT 10",
+        "query": "MATCH (j:Journal)-[:PublishedIn]-(a:Article) RETURN j.title, count(a) AS num_articles ORDER BY num_articles DESC LIMIT 10",
     },
     {
         "question": "What are the top 10 cited articles by a particular journal", 
-        "query": "MATCH (j:Journal)-[:PUBLISHED_IN]-(a:Article) WHERE j.journal_name='The Plant Journal' WITH a ORDER BY a.citation_count DESC RETURN a.title LIMIT 10",
-    },
-    {
-        "question": "What are the authors of articles with a specific title?",
-        "query": "MATCH (title:Title)-[:HAS_TITLE]-(a:Article)-[:WRITTEN_BY]-(au:Author) WHERE title.text = 'Title of the article' RETURN a.title, au.author_names",
+        "query": "MATCH (j:Journal)-[:PublishedIn]-(a:Article) WHERE j.title='The Plant Journal' WITH a ORDER BY a.n_citation DESC RETURN a.title LIMIT 10",
     },
     {
         "question": "How many articles were published in a specific year, e.g 2020?",
-        "query": "MATCH (a:Article)-[p:YEAR_PUBLISHED]-(y:Year {publication_year:2020}) RETURN a.title",
-    },
-    {
-        "question": "Which journal publication published the most article in a specific year, e.g 2020", 
-        "query": "MATCH (j:Journal)-[:PUBLISHED_IN]-(a:Article) WHERE a.publication_year=2020 WITH j, count(a) AS num_articles ORDER BY num_articles DESC RETURN j.journal_name, num_articles",
+        "query": "MATCH (a:Article) WHERE a.pubdate=2020 RETURN COUNT(a)",
     },
     {
         "question": "What are the articles published after a specific year?",
-        "query": "MATCH (a:Article) WHERE a.publication_year > year RETURN a.title",
+        "query": "MATCH (a:Article) WHERE a.pubdate > year RETURN a.title",
     },
     {
-        "question": "What are the top cited articles published after a specific year, e.g 2010?",
-        "query": "MATCH (a:Article) WHERE a.publication_year > 2010 WITH a ORDER BY a.citation_count DESC RETURN a.title, a.citation_count LIMIT 10",
+        "question": "What is the GO term with ID 0035267?",
+        "query": "MATCH (v:Vocabulary {{id: 'go:0035267'}}) RETURN v.name",
     },
     {
-        "question": "Which articles were funded by a specific funder, e.g National Science Foundation?", 
-        "query": "MATCH (f:Funder)-[:FUNDED_BY]-(a:Article) WHERE f.funder_name = 'National Science Foundation' RETURN a.title",
+        "question": "What are the aliases of the gene with HGNC id 11997?",
+        "query": "MATCH (v:Vocabulary {{id: 'hgnc:11997'}}) RETURN v.synonyms",
     },
     {
-        "question": "What are the funders of a specific article?",
-        "query": "MATCH (f:Funder)<-[:FUNDED_BY]-(a:Article) WHERE a.title = 'Title of the article' RETURN f.funder_name",
+        "question": "What is the disease with DOID 0050606?",
+        "query": "MATCH (v:Vocabulary {{id: 'doid:0050606'}}) RETURN v.name",
     },
     {
-        "question": "Where is a specific intitution located?",
-        "query": "MATCH (i:Institution) WHERE i.institution_name='Name of the Insitution' RETURN i.country, i.city",
+        "question": "What are the cross references of the MESH term D007644 in other ontologies?",
+        "query": "MATCH (v:Vocabulary {{id: 'mesh:D007644'}})-[:OntologyMapping]->(o:Vocabulary) RETURN o.name, o.id",
     },
     {
-        "question": "Provide the list of institution from a specific country, e.g Japan", 
-        "query": "MATCH (i:Institution)-[:IS_FROM]-(c:Country) WHERE c.country_name='Japan' RETURN i.country, i.institution_name ",
+        "question": "What is the most cited article of a specific biomedical concept?",
+        "query": "MATCH (v:Vocabulary {{id: 'Concept ID'}})-[:ContainTerm]-(a:Article) RETURN a.title ORDER BY a.n_citation DESC LIMIT 1",
     },
     {
-        "question": "How many articles are authored by authors from a specific country, e.g Japan?",
-        "query": "MATCH (c:Country)-[:IS_FROM]-(i:Institution)-[:AFFILLIATED_TO]-(au:Author)-[:WRITTEN_BY]-(a:Article) WHERE c.country_name = 'Japan' RETURN count(a)",
+        "question": "Which genetic variant affects a specific gene?",
+        "query": "MATCH (:Vocabulary {{id: 'Concept ID'}})-[:VariantToGeneAssociation]-(v:Vocabulary) RETURN v.id, v.name",
     },
     {
-        "question": "What are the top cited articles from insitutions from a specific country, e.g Japan",
-        "query": "MATCH (c:Country)-[:IS_FROM]-(i:Institution)-[:AFFILLIATED_TO]-(au:Author)-[:WRITTEN_BY]-(a:Article) WHERE c.country_name = 'Japan' WITH c, a ORDER BY a.citation_count DESC RETURN DISTINCT(a.title), a.citation_count, c.country_name",
+        "question": "What is the reference and alternative alleles of the genetic variant with RSID rs35850753?",
+        "query": "MATCH (v:Vocabulary {{id: 'rs35850753'}}) RETURN v.ref, v.alt",
     },
     {
-        "question": "List the top cited articles with authors from institution from a specific country, e.g Japan", 
-        "query": "MATCH (i:Institution)-[:IS_FROM]-(c:Country) WHERE c.country_name='Japan' WITH i, c MATCH (i)-[:AFFILLIATED_TO]-(au:Author)-:WRITTEN_BY]-(a:Article) WITH a, au, c ORDER BY a.citation_count DESC RETURN DISTINCT(a.title) AS Title, a.citation_count AS Citations, COLLECT(au.author_names) LIMIT 10",
+        "question": "What are the subclasses of the disease mondo:0018800?",
+        "query": "MATCH (v:Vocabulary)-[:HierarchicalStructure]->(d:Vocabulary {{id: 'mondo:0018800'}}) RETURN v.name, v.id",
     },
 ]

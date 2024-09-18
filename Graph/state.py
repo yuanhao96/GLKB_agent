@@ -7,18 +7,18 @@ class GraphState(TypedDict):
 
     Attributes:
         question: question
-        documents: result of chain
-        article_ids: list of article id from vector search
+        steps: plan to answer the question
+        context: context of each step
+        prompt_context: list of context from previous steps to form qa prompt
         prompt: prompt template object
         prompt_with_context: prompt template with context from vector search
-        subqueries: decomposed queries
         answer: answer to the question
     """
 
     question: str
-    documents: dict
-    article_ids: List[str]
+    steps: object
+    context: dict
+    prompt_context: list
     prompt: object
     prompt_with_context: object
-    subqueries: object
     answer: str
