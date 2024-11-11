@@ -47,6 +47,7 @@ def get_graph_qa_chain(state: GraphState):
             cypher_prompt = prompt,
             # return_intermediate_steps = True,
             return_direct = True,
+            allow_dangerous_requests = True,
             include_types=['Article', 
                 'Journal', 
                 'Vocabulary', 
