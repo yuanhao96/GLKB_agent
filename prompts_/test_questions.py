@@ -85,7 +85,7 @@ test_questions = [
     },
     {
         "q": "What are the journals that published articles mentioning 'CRISPR' technology with more than 5 authors?",
-        "a": '''CALL db.index.fulltext.queryNodes("vocabulary_Names", "'CRISPR'") YIELD node AS crispr MATCH (article:Article)-[:ContainTerm]->(crispr) WHERE size(article.authors) > 5 MATCH (article)-[:PublishedIn]->(journal:Journal) RETURN DISTINCT journal.title LIMIT 100'''
+        "a": '''CALL db.index.fulltext.queryNodes("article_Title", "'CRISPR'") YIELD node, score WITH node as n, score LIMIT 10 RETURN n, ID(n), n.id, n.title, n.n_citation, n.score'''
     },
     {
         "q": "Find all diseases that are connected to the gene with HGNC ID 'HGNC:1097' and return the disease name and its citation count.",
@@ -102,5 +102,13 @@ test_questions = [
     {
         "q": "Identify the top 3 articles about 'epigenetics' published in 2019 with the highest citation counts.",
         "a": '''CALL db.index.fulltext.queryNodes("vocabulary_Names", "'epigenetics'") YIELD node AS epigenetics MATCH (article:Article {pubdate: 2019})-[:ContainTerm]->(epigenetics) RETURN article.title, article.n_citation ORDER BY article.n_citation DESC LIMIT 3'''
+    },
+    {
+        "q": "what is TP53",
+        "a": '''CALL db.index.fulltext.queryNodes("vocabulary_Names","'tp53'")YIELD node AS tp53 RETURN tp53.name, tp53.id'''
+    },
+    {
+        "q": "what is TP53",
+        "a": '''CALL db.index.fulltext.queryNodes("vocabulary_Names","'tp53'")YIELD node AS tp53 RETURN tp53.name, tp53.id'''
     },
 ]

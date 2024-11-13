@@ -6,7 +6,7 @@ GLKB_PASSWORD ='password'
 
 driver = GraphDatabase.driver(GLKB_CONNECTION_URL, auth=(GLKB_USERNAME, GLKB_PASSWORD), max_connection_lifetime=1000)
 
-cypher = '''MATCH(d:Vocabulary{id:'doid:0080636'})-[:GeneToDiseaseAssociation]->(g:Vocabulary)RETURN g.name,g.id LIMIT 100'''
+cypher = '''CALL db.index.fulltext.queryNodes("article_Title", "'CRISPR'") YIELD node, score WITH node as n, score LIMIT 10 RETURN n, ID(n), n.id, n.title, n.n_citation, n.score'''
 
 # with driver.session() as session:
 #     res = session.run(cypher).value().copy()
