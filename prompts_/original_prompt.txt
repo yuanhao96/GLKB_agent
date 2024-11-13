@@ -1,0 +1,45 @@
+
+[{'content': '\nTask:Generate Cypher statement to query a graph database.\nInstructions:\nUse only the provided relationship types and properties in the schema.\nDo not use any other relationship types or properties that are not provided.\nSchema:\nNode properties are the following:\nArticle {pubmedid: STRING, title: STRING, pubdate: INTEGER, authors: LIST, journal: STRING, source: STRING, id: STRING, preferred_id: STRING, embedding: LIST, n_citation: INTEGER, doi: STRING, abstract: STRING, author_affiliations: LIST},Journal {title: STRING, med_abbrevation: STRING, iso_abbrevation: STRING, issn_print: STRING, issn_online: STRING, jrid: STRING, id: STRING, preferred_id: STRING},Vocabulary {name: STRING, id: STRING, preferred_id: STRING, n_citation: INTEGER, description: STRING, synonyms: LIST, embedding: LIST, rsid: STRING, ref: STRING, alt: STRING, source: STRING}\nRelationship properties are the following:\nContainTerm {source: STRING, normalized_name: STRING, type: STRING, prob: FLOAT},VariantToDiseaseAssociation {source: STRING, type: STRING, risk allele: STRING, from_article: STRING},VariantToGeneAssociation {source: STRING, type: STRING, risk allele: STRING},HierarchicalStructure {source: STRING, type: STRING},Cite {source: STRING},GeneToPathwayAssociation {source: STRING, type: STRING},DiseaseToPhenotypicFeatureAssociation {source: STRING, type: STRING},ChemicalAffectsGeneAssociation {source: STRING, type: STRING},ChemicalToChemicalAssociation {source: STRING, type: STRING},GeneToGoTermAssociation {source: STRING, type: STRING},ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation {source: STRING, type: STRING},ExposureEventToOutcomeAssociation {source: STRING, type: STRING},GeneToDiseaseAssociation {source: STRING, type: STRING},GeneToGeneAssociation {source: STRING, type: STRING},GeneToExpressionSiteAssociation {type: STRING, source: STRING},OntologyMapping {source: STRING, score: FLOAT}\nThe relationships are the following:\n(:Article)-[:PublishedIn]->(:Journal),(:Article)-[:ContainTerm]->(:Vocabulary),(:Article)-[:Cite]->(:Article),(:Vocabulary)-[:HierarchicalStructure]->(:Vocabulary),(:Vocabulary)-[:OntologyMapping]->(:Vocabulary),(:Vocabulary)-[:GeneToDiseaseAssociation]->(:Vocabulary),(:Vocabulary)-[:DiseaseToPhenotypicFeatureAssociation]->(:Vocabulary),(:Vocabulary)-[:ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation]->(:Vocabulary),(:Vocabulary)-[:GeneToGeneAssociation]->(:Vocabulary),(:Vocabulary)-[:GeneToExpressionSiteAssociation]->(:Vocabulary),(:Vocabulary)-[:GeneToPathwayAssociation]->(:Vocabulary),(:Vocabulary)-[:GeneToGoTermAssociation]->(:Vocabulary),(:Vocabulary)-[:ChemicalAffectsGeneAssociation]->(:Vocabulary),(:Vocabulary)-[:ChemicalToChemicalAssociation]->(:Vocabulary),(:Vocabulary)-[:VariantToGeneAssociation]->(:Vocabulary),(:Vocabulary)-[:VariantToDiseaseAssociation]->(:Vocabulary)\n\nNote: Do not include any explanations or apologies in your responses.\nDo not respond to any questions that might ask anything else than for you to construct a Cypher statement.\nDo not include any text except the generated Cypher statement.\n\nExamples: Here are a few examples of generated Cypher statements for particular questions:\n    \n\nQuestion: What are the articles that cite a specific article?\nCypher query: MATCH (a:Article {pubmedid: \'PubMed ID\'})<-[:Cite]-(c:Article) RETURN c.title\n\nQuestion: What are the top journals by the number of articles published?\nCypher query: MATCH (j:Journal)-[:PublishedIn]-(a:Article) RETURN j.title, count(a) AS num_articles ORDER BY num_articles DESC LIMIT 10\n\nQuestion: Which genetic variant affects a specific gene?\nCypher query: MATCH (:Vocabulary {id: \'Concept ID\'})-[:VariantToGeneAssociation]-(v:Vocabulary) RETURN v.id, v.name\n\nQuestion: What are the cross references of the MESH term D007644 in other ontologies?\nCypher query: MATCH (v:Vocabulary {id: \'mesh:D007644\'})-[:OntologyMapping]->(o:Vocabulary) RETURN o.name, o.id\n\nQuestion: define breast cancer\nCypher query: CALL db.index.fulltext.queryNodes("vocabulary_Names", "\'breast cancer\'") YIELD node, score WITH node as n, score LIMIT 7 RETURN n.id, n.name, n.description ORDER BY CASE WHEN n.n_citation IS NOT NULL THEN n.n_citation ELSE 0 END DESC\n\nQuestion: how many articles are published in 2021, \nCypher Query: ', 'role': 'user'}]
+
+Generated Cypher:
+MATCH (a:Article) WHERE a.pubdate = 2021 RETURN count(a) AS num_articles
+
+{'query': 'how many articles are published in 2021', 'result': [{'num_articles': 1631618}]}
+
+
+==================================================================================
+Task:Generate Cypher statement to query a graph database.
+Instructions:
+Use only the provided relationship types and properties in the schema.
+Do not use any other relationship types or properties that are not provided.
+Schema:
+Node properties are the following:
+Article {pubmedid: STRING, title: STRING, pubdate: INTEGER, authors: LIST, journal: STRING, source: STRING, id: STRING, preferred_id: STRING, embedding: LIST, n_citation: INTEGER, doi: STRING, abstract: STRING, author_affiliations: LIST},Journal {title: STRING, med_abbrevation: STRING, iso_abbrevation: STRING, issn_print: STRING, issn_online: STRING, jrid: STRING, id: STRING, preferred_id: STRING},Vocabulary {name: STRING, id: STRING, preferred_id: STRING, n_citation: INTEGER, description: STRING, synonyms: LIST, embedding: LIST, rsid: STRING, ref: STRING, alt: STRING, source: STRING}
+Relationship properties are the following:
+ContainTerm {source: STRING, normalized_name: STRING, type: STRING, prob: FLOAT},VariantToDiseaseAssociation {source: STRING, type: STRING, risk allele: STRING, from_article: STRING},VariantToGeneAssociation {source: STRING, type: STRING, risk allele: STRING},HierarchicalStructure {source: STRING, type: STRING},Cite {source: STRING},GeneToPathwayAssociation {source: STRING, type: STRING},DiseaseToPhenotypicFeatureAssociation {source: STRING, type: STRING},ChemicalAffectsGeneAssociation {source: STRING, type: STRING},ChemicalToChemicalAssociation {source: STRING, type: STRING},GeneToGoTermAssociation {source: STRING, type: STRING},ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation {source: STRING, type: STRING},ExposureEventToOutcomeAssociation {source: STRING, type: STRING},GeneToDiseaseAssociation {source: STRING, type: STRING},GeneToGeneAssociation {source: STRING, type: STRING},GeneToExpressionSiteAssociation {type: STRING, source: STRING},OntologyMapping {source: STRING, score: FLOAT}
+The relationships are the following:
+(:Article)-[:PublishedIn]->(:Journal),(:Article)-[:ContainTerm]->(:Vocabulary),(:Article)-[:Cite]->(:Article),(:Vocabulary)-[:HierarchicalStructure]->(:Vocabulary),(:Vocabulary)-[:OntologyMapping]->(:Vocabulary),(:Vocabulary)-[:GeneToDiseaseAssociation]->(:Vocabulary),(:Vocabulary)-[:DiseaseToPhenotypicFeatureAssociation]->(:Vocabulary),(:Vocabulary)-[:ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation]->(:Vocabulary),(:Vocabulary)-[:GeneToGeneAssociation]->(:Vocabulary),(:Vocabulary)-[:GeneToExpressionSiteAssociation]->(:Vocabulary),(:Vocabulary)-[:GeneToPathwayAssociation]->(:Vocabulary),(:Vocabulary)-[:GeneToGoTermAssociation]->(:Vocabulary),(:Vocabulary)-[:ChemicalAffectsGeneAssociation]->(:Vocabulary),(:Vocabulary)-[:ChemicalToChemicalAssociation]->(:Vocabulary),(:Vocabulary)-[:VariantToGeneAssociation]->(:Vocabulary),(:Vocabulary)-[:VariantToDiseaseAssociation]->(:Vocabulary)
+
+Note: Do not include any explanations or apologies in your responses.
+Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
+Do not include any text except the generated Cypher statement.
+Examples: Here are a few examples of generated Cypher statements for particular questions:
+    
+    
+Question: What are the articles that cite a specific article?
+Cypher query: MATCH (a:Article {pubmedid: \'PubMed ID\'})<-[:Cite]-(c:Article) RETURN c.title
+
+Question: What are the top journals by the number of articles published?
+Cypher query: MATCH (j:Journal)-[:PublishedIn]-(a:Article) RETURN j.title, count(a) AS num_articles ORDER BY num_articles DESC LIMIT 10
+
+Question: Which genetic variant affects a specific gene?
+Cypher query: MATCH (:Vocabulary {id: \'Concept ID\'})-[:VariantToGeneAssociation]-(v:Vocabulary) RETURN v.id, v.name
+
+Question: What are the cross references of the MESH term D007644 in other ontologies?
+Cypher query: MATCH (v:Vocabulary {id: \'mesh:D007644\'})-[:OntologyMapping]->(o:Vocabulary) RETURN o.name, o.id
+
+Question: define breast cancer
+Cypher query: CALL db.index.fulltext.queryNodes("vocabulary_Names", "\'breast cancer\'") YIELD node, score WITH node as n, score LIMIT 7 RETURN n.id, n.name, n.description ORDER BY CASE WHEN n.n_citation IS NOT NULL THEN n.n_citation ELSE 0 END DESC
+
+Question: how many articles are published in 2021, 
+Cypher Query: 

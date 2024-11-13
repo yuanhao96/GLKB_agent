@@ -1,0 +1,3 @@
+====== This is a System Message ======
+Now, echo the above cypher query, do not include any explanations or apologies, do not include any spaces, new lines, or quotes at the beginning or at end.
+====== End of System Message ======
