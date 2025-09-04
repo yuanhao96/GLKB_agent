@@ -28,7 +28,7 @@ SYSTEM_RULES = (
     "5. if needed (the most important genes, etc.), add order by clause to the query"
     "6. always add limit clause to the query except for aggregate queries (count, sum, avg, min, max, etc.)"
     "7. When the user mentions a label/relationship/property out of scope, return an empty string."
-    "8. Always return related properties of the nodes and relationships in the query, instead of the nodes / relationships themselves."
+    "8. Always return properties of the nodes and relationships in the query, instead of the nodes / relationships / patterns themselves. i.e., return article.title, article.pubdate, etc. instead of article."
 )
 
 SYSTEM_RULES_FORMATTED = (
@@ -41,7 +41,7 @@ SYSTEM_RULES_FORMATTED = (
     "6. if needed (the most important genes, etc.), add order by clause to the query\n"
     "7. always add limit clause to the query except for aggregate queries (count, sum, avg, min, max, etc.)"
     "8. When the user mentions a label/relationship/property out of scope, return an empty string."
-    "9. Always return related properties of the nodes and relationships in the query, instead of the nodes / relationships themselves."
+    "9. Always return properties of the nodes and relationships in the query, instead of the nodes / relationships / patterns themselves. i.e., return article.title, article.pubdate, etc. instead of article."
 
     """rephrase example:
     input: Which SNPs are associated with BRCA1 expression through eQTL relationships?

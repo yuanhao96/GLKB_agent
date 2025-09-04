@@ -3313,3 +3313,2427 @@
   }
 }
 
+{
+  "timestamp": "2025-09-04 15:28:13",
+  "level": "INFO",
+  "event_type": "ROUTING_RESULT",
+  "elapsed_seconds": 744.452,
+  "data": {
+    "question": "What pathways does TP53 participate in?",
+    "resulting_workflow": "graph_query_agent"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:28:27",
+  "level": "INFO",
+  "event_type": "ANSWER_RESULT",
+  "elapsed_seconds": 759.009,
+  "data": {
+    "question": "What pathways does TP53 participate in?",
+    "answer": "I'm currently experiencing issues with retrieving data from the database regarding the pathways in which the TP53 gene participates. I'll continue trying to resolve this problem.\n\nMeanwhile, if you have any other questions or need information on a different topic, please feel free to ask!"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:28:27",
+  "level": "INFO",
+  "event_type": "COMPLETE_RESULT",
+  "elapsed_seconds": 759.015,
+  "data": {
+    "question": "What pathways does TP53 participate in?",
+    "answer": "I'm currently experiencing issues with retrieving data from the database regarding the pathways in which the TP53 gene participates. I'll continue trying to resolve this problem.\n\nMeanwhile, if you have any other questions or need information on a different topic, please feel free to ask!",
+    "execution_time": 15.43556261062622,
+    "history": [
+      {
+        "role": "user",
+        "content": "What pathways does TP53 participate in?"
+      },
+      {
+        "role": "user",
+        "content": "What pathways does TP53 participate in?"
+      },
+      {
+        "role": "assistant",
+        "content": "I'm currently experiencing issues with retrieving data from the database regarding the pathways in which the TP53 gene participates. I'll continue trying to resolve this problem.\n\nMeanwhile, if you have any other questions or need information on a different topic, please feel free to ask!"
+      }
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:30:08",
+  "level": "INFO",
+  "event_type": "ROUTING_RESULT",
+  "elapsed_seconds": 859.816,
+  "data": {
+    "question": "What pathways does TP53 participate in?",
+    "resulting_workflow": "graph_query_agent"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:30:19",
+  "level": "INFO",
+  "event_type": "ANSWER_RESULT",
+  "elapsed_seconds": 871.1,
+  "data": {
+    "question": "What pathways does TP53 participate in?",
+    "answer": "I encountered an issue when attempting to retrieve data concerning the pathways in which the TP53 gene is involved. This seems to be a technical problem with accessing the data. I recommend trying again later.\n\nIf you have any other questions or need further information about a different topic, please let me know!"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:30:19",
+  "level": "INFO",
+  "event_type": "COMPLETE_RESULT",
+  "elapsed_seconds": 871.109,
+  "data": {
+    "question": "What pathways does TP53 participate in?",
+    "answer": "I encountered an issue when attempting to retrieve data concerning the pathways in which the TP53 gene is involved. This seems to be a technical problem with accessing the data. I recommend trying again later.\n\nIf you have any other questions or need further information about a different topic, please let me know!",
+    "execution_time": 12.25581979751587,
+    "history": [
+      {
+        "role": "user",
+        "content": "What pathways does TP53 participate in?"
+      },
+      {
+        "role": "assistant",
+        "content": "I'm currently experiencing issues with retrieving data from the database regarding the pathways in which the TP53 gene participates. I'll continue trying to resolve this problem.\n\nMeanwhile, if you have any other questions or need information on a different topic, please feel free to ask!"
+      },
+      {
+        "role": "user",
+        "content": "What pathways does TP53 participate in?"
+      },
+      {
+        "role": "user",
+        "content": "What pathways does TP53 participate in?"
+      },
+      {
+        "role": "assistant",
+        "content": "I encountered an issue when attempting to retrieve data concerning the pathways in which the TP53 gene is involved. This seems to be a technical problem with accessing the data. I recommend trying again later.\n\nIf you have any other questions or need further information about a different topic, please let me know!"
+      }
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:04",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.001,
+  "data": {
+    "step": "CHATBOT_INITIALIZATION",
+    "status": "started",
+    "message": "Starting GLKB chatbot",
+    "version": "1.0.0"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:04",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.001,
+  "data": {
+    "step": "MCP_APP_INITIALIZATION",
+    "status": "started",
+    "app_name": "glkb_chatbot"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "step": "MCP_APP_INITIALIZATION",
+    "status": "success",
+    "app_name": "glkb_chatbot"
+  },
+  "duration_seconds": 0.134
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "step": "MCP_SERVER_LOADING",
+    "status": "started",
+    "message": "Loading MCP server configurations"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "DEBUG",
+  "event_type": "MCP_CONFIG_PATH",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "config_path": "/var/www/glkb/neo4j_agent/chatbot/mcpServers.json",
+    "exists": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "MCP_CONFIG_LOADED",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "source": "file",
+    "config_size_bytes": 277,
+    "parse_duration": 5.698204040527344e-05
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "DEBUG",
+  "event_type": "MCP_CONFIG_STRUCTURE",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "has_mcpServers_key": true,
+    "config_type": "nested"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "MCP_SERVERS_PROCESSING",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "total_servers_in_config": 2,
+    "server_names": [
+      "fetch",
+      "glkb_search"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "MCP_SERVER_ADDED",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "server_name": "fetch",
+    "transport": "stdio",
+    "command": "uvx",
+    "args": [
+      "mcp-server-fetch"
+    ],
+    "has_url": false,
+    "has_headers": false,
+    "has_env_vars": false
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "MCP_SERVER_ADDED",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "server_name": "glkb_search",
+    "transport": "stdio",
+    "command": "python",
+    "args": [
+      "/var/www/glkb/neo4j_agent/mcp_graph_agent_server.py"
+    ],
+    "has_url": false,
+    "has_headers": false,
+    "has_env_vars": false
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "step": "MCP_SERVER_LOADING",
+    "status": "completed",
+    "total_servers_loaded": 2,
+    "server_names": [
+      "fetch",
+      "glkb_search"
+    ],
+    "success": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "step": "OPENAI_CONFIGURATION",
+    "status": "started",
+    "message": "Configuring OpenAI settings"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "OPENAI_CONFIGURATION",
+    "status": "completed",
+    "model": "gpt-4o",
+    "api_key_exists": true,
+    "api_key_length": 164
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "AGENT_CREATION",
+    "status": "started",
+    "message": "Creating LLM and agent instances",
+    "total_agents": 4
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "MAIN_LLM_CREATION",
+    "status": "started",
+    "agent_name": "main_llm",
+    "provider": "openai",
+    "model": "gpt-4o"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "MAIN_LLM_CREATION",
+    "status": "success",
+    "agent_name": "main_llm"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "GRAPH_QUERY_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "graph_query_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "GRAPH_QUERY_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "graph_query_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "GENERAL_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "general_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "GENERAL_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "general_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "RAG_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "rag_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "RAG_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "rag_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "ROUTING_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "routing_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "source_agents": [
+      "rag_agent",
+      "graph_query_agent",
+      "general_agent"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "ROUTING_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "routing_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "AGENT_CREATION",
+    "status": "success",
+    "total_agents_created": 5,
+    "agent_names": [
+      "main_llm",
+      "graph_query_agent",
+      "general_agent",
+      "rag_agent",
+      "routing_agent"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:05",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "CHATBOT_INITIALIZATION",
+    "status": "completed",
+    "message": "Chatbot is ready for user input",
+    "model": "gpt-4o",
+    "total_agents": 5,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:12",
+  "level": "INFO",
+  "event_type": "USER_INPUT",
+  "elapsed_seconds": 7.858,
+  "data": {
+    "prompt": "What pathways does TP53 participate in?",
+    "prompt_length": 39,
+    "message_number": 1
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:12",
+  "level": "DEBUG",
+  "event_type": "ROUTER_REQUEST_START",
+  "elapsed_seconds": 7.858,
+  "data": {
+    "prompt": "What pathways does TP53 participate in?",
+    "model": "gpt-4o",
+    "use_history": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:33",
+  "level": "INFO",
+  "event_type": "ROUTER_RESPONSE_SUCCESS",
+  "elapsed_seconds": 28.871,
+  "data": {
+    "response_length": 5,
+    "model": "gpt-4o",
+    "response_duration": 21.012481212615967,
+    "message_number": 1
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:31:33",
+  "level": "DEBUG",
+  "event_type": "RESPONSE_CONTENT",
+  "elapsed_seconds": 28.871,
+  "data": {
+    "content_length": 346,
+    "content_preview": "I am currently encountering persistent issues with executing the graph query for pathways involving ...",
+    "message_number": 1
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:43",
+  "level": "WARNING",
+  "event_type": "CHATBOT_INTERRUPT",
+  "elapsed_seconds": 398.538,
+  "data": {
+    "interrupt_type": "keyboard_interrupt",
+    "message": "User interrupted the chatbot",
+    "conversation_stats": {
+      "total_messages": 1,
+      "successful_responses": 1,
+      "failed_responses": 0,
+      "total_response_time": 21.012481212615967
+    }
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:43",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 398.538,
+  "data": {
+    "step": "CHATBOT_SHUTDOWN",
+    "status": "completed",
+    "message": "Chatbot shutting down",
+    "conversation_stats": {
+      "total_messages": 1,
+      "successful_responses": 1,
+      "failed_responses": 0,
+      "total_response_time": 21.012481212615967
+    },
+    "average_response_time": 21.012481212615967,
+    "success_rate_percent": 100.0
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:46",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.001,
+  "data": {
+    "step": "CHATBOT_INITIALIZATION",
+    "status": "started",
+    "message": "Starting GLKB chatbot",
+    "version": "1.0.0"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:46",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.001,
+  "data": {
+    "step": "MCP_APP_INITIALIZATION",
+    "status": "started",
+    "app_name": "glkb_chatbot"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:46",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "step": "MCP_APP_INITIALIZATION",
+    "status": "success",
+    "app_name": "glkb_chatbot"
+  },
+  "duration_seconds": 0.135
+}
+
+{
+  "timestamp": "2025-09-04 15:37:46",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "step": "MCP_SERVER_LOADING",
+    "status": "started",
+    "message": "Loading MCP server configurations"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:46",
+  "level": "DEBUG",
+  "event_type": "MCP_CONFIG_PATH",
+  "elapsed_seconds": 0.136,
+  "data": {
+    "config_path": "/var/www/glkb/neo4j_agent/chatbot/mcpServers.json",
+    "exists": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:46",
+  "level": "INFO",
+  "event_type": "MCP_CONFIG_LOADED",
+  "elapsed_seconds": 0.137,
+  "data": {
+    "source": "file",
+    "config_size_bytes": 277,
+    "parse_duration": 5.602836608886719e-05
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:46",
+  "level": "DEBUG",
+  "event_type": "MCP_CONFIG_STRUCTURE",
+  "elapsed_seconds": 0.137,
+  "data": {
+    "has_mcpServers_key": true,
+    "config_type": "nested"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:46",
+  "level": "INFO",
+  "event_type": "MCP_SERVERS_PROCESSING",
+  "elapsed_seconds": 0.137,
+  "data": {
+    "total_servers_in_config": 2,
+    "server_names": [
+      "fetch",
+      "glkb_search"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:46",
+  "level": "INFO",
+  "event_type": "MCP_SERVER_ADDED",
+  "elapsed_seconds": 0.137,
+  "data": {
+    "server_name": "fetch",
+    "transport": "stdio",
+    "command": "uvx",
+    "args": [
+      "mcp-server-fetch"
+    ],
+    "has_url": false,
+    "has_headers": false,
+    "has_env_vars": false
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:46",
+  "level": "INFO",
+  "event_type": "MCP_SERVER_ADDED",
+  "elapsed_seconds": 0.137,
+  "data": {
+    "server_name": "glkb_search",
+    "transport": "stdio",
+    "command": "python",
+    "args": [
+      "/var/www/glkb/neo4j_agent/mcp_graph_agent_server.py"
+    ],
+    "has_url": false,
+    "has_headers": false,
+    "has_env_vars": false
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:46",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.137,
+  "data": {
+    "step": "MCP_SERVER_LOADING",
+    "status": "completed",
+    "total_servers_loaded": 2,
+    "server_names": [
+      "fetch",
+      "glkb_search"
+    ],
+    "success": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:46",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.137,
+  "data": {
+    "step": "OPENAI_CONFIGURATION",
+    "status": "started",
+    "message": "Configuring OpenAI settings"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "OPENAI_CONFIGURATION",
+    "status": "completed",
+    "model": "gpt-4o",
+    "api_key_exists": true,
+    "api_key_length": 164
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "AGENT_CREATION",
+    "status": "started",
+    "message": "Creating LLM and agent instances",
+    "total_agents": 4
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.139,
+  "data": {
+    "step": "MAIN_LLM_CREATION",
+    "status": "started",
+    "agent_name": "main_llm",
+    "provider": "openai",
+    "model": "gpt-4o"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "MAIN_LLM_CREATION",
+    "status": "success",
+    "agent_name": "main_llm"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "GRAPH_QUERY_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "graph_query_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "GRAPH_QUERY_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "graph_query_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "GENERAL_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "general_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "GENERAL_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "general_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "RAG_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "rag_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "RAG_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "rag_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "ROUTING_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "routing_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "source_agents": [
+      "rag_agent",
+      "graph_query_agent",
+      "general_agent"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "ROUTING_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "routing_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "AGENT_CREATION",
+    "status": "success",
+    "total_agents_created": 5,
+    "agent_names": [
+      "main_llm",
+      "graph_query_agent",
+      "general_agent",
+      "rag_agent",
+      "routing_agent"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:37:47",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.14,
+  "data": {
+    "step": "CHATBOT_INITIALIZATION",
+    "status": "completed",
+    "message": "Chatbot is ready for user input",
+    "model": "gpt-4o",
+    "total_agents": 5,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:38:03",
+  "level": "INFO",
+  "event_type": "USER_INPUT",
+  "elapsed_seconds": 16.322,
+  "data": {
+    "prompt": "What pathways does TP53 participate in?",
+    "prompt_length": 39,
+    "message_number": 1
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:38:03",
+  "level": "DEBUG",
+  "event_type": "ROUTER_REQUEST_START",
+  "elapsed_seconds": 16.323,
+  "data": {
+    "prompt": "What pathways does TP53 participate in?",
+    "model": "gpt-4o",
+    "use_history": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:38:29",
+  "level": "INFO",
+  "event_type": "ROUTER_RESPONSE_SUCCESS",
+  "elapsed_seconds": 42.254,
+  "data": {
+    "response_length": 3,
+    "model": "gpt-4o",
+    "response_duration": 25.93098020553589,
+    "message_number": 1
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:38:29",
+  "level": "DEBUG",
+  "event_type": "RESPONSE_CONTENT",
+  "elapsed_seconds": 42.254,
+  "data": {
+    "content_length": 1706,
+    "content_preview": "The TP53 gene (also known as tumor protein p53) is involved in a variety of crucial biological pathw...",
+    "message_number": 1
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:38:29",
+  "level": "DEBUG",
+  "event_type": "EMPTY_INPUT",
+  "elapsed_seconds": 42.254,
+  "data": {
+    "message": "User provided empty input, skipping"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:38:58",
+  "level": "WARNING",
+  "event_type": "CHATBOT_INTERRUPT",
+  "elapsed_seconds": 72.128,
+  "data": {
+    "interrupt_type": "keyboard_interrupt",
+    "message": "User interrupted the chatbot",
+    "conversation_stats": {
+      "total_messages": 1,
+      "successful_responses": 1,
+      "failed_responses": 0,
+      "total_response_time": 25.93098020553589
+    }
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:38:58",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 72.128,
+  "data": {
+    "step": "CHATBOT_SHUTDOWN",
+    "status": "completed",
+    "message": "Chatbot shutting down",
+    "conversation_stats": {
+      "total_messages": 1,
+      "successful_responses": 1,
+      "failed_responses": 0,
+      "total_response_time": 25.93098020553589
+    },
+    "average_response_time": 25.93098020553589,
+    "success_rate_percent": 100.0
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.002,
+  "data": {
+    "step": "CHATBOT_INITIALIZATION",
+    "status": "started",
+    "message": "Starting GLKB chatbot",
+    "version": "1.0.0"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.002,
+  "data": {
+    "step": "MCP_APP_INITIALIZATION",
+    "status": "started",
+    "app_name": "glkb_chatbot"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.002,
+  "data": {
+    "step": "CHATBOT_INITIALIZATION",
+    "status": "started",
+    "message": "Starting GLKB chatbot",
+    "version": "1.0.0"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.002,
+  "data": {
+    "step": "MCP_APP_INITIALIZATION",
+    "status": "started",
+    "app_name": "glkb_chatbot"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.002,
+  "data": {
+    "step": "CHATBOT_INITIALIZATION",
+    "status": "started",
+    "message": "Starting GLKB chatbot",
+    "version": "1.0.0"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.002,
+  "data": {
+    "step": "MCP_APP_INITIALIZATION",
+    "status": "started",
+    "app_name": "glkb_chatbot"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.002,
+  "data": {
+    "step": "CHATBOT_INITIALIZATION",
+    "status": "started",
+    "message": "Starting GLKB chatbot",
+    "version": "1.0.0"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.002,
+  "data": {
+    "step": "MCP_APP_INITIALIZATION",
+    "status": "started",
+    "app_name": "glkb_chatbot"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "step": "MCP_APP_INITIALIZATION",
+    "status": "success",
+    "app_name": "glkb_chatbot"
+  },
+  "duration_seconds": 0.271
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "step": "MCP_SERVER_LOADING",
+    "status": "started",
+    "message": "Loading MCP server configurations"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "DEBUG",
+  "event_type": "MCP_CONFIG_PATH",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "config_path": "/var/www/glkb/neo4j_agent/chatbot/mcpServers.json",
+    "exists": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "MCP_CONFIG_LOADED",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "source": "file",
+    "config_size_bytes": 277,
+    "parse_duration": 5.650520324707031e-05
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "DEBUG",
+  "event_type": "MCP_CONFIG_STRUCTURE",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "has_mcpServers_key": true,
+    "config_type": "nested"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "MCP_SERVERS_PROCESSING",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "total_servers_in_config": 2,
+    "server_names": [
+      "fetch",
+      "glkb_search"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "MCP_SERVER_ADDED",
+  "elapsed_seconds": 0.274,
+  "data": {
+    "server_name": "fetch",
+    "transport": "stdio",
+    "command": "uvx",
+    "args": [
+      "mcp-server-fetch"
+    ],
+    "has_url": false,
+    "has_headers": false,
+    "has_env_vars": false
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "MCP_SERVER_ADDED",
+  "elapsed_seconds": 0.274,
+  "data": {
+    "server_name": "glkb_search",
+    "transport": "stdio",
+    "command": "python",
+    "args": [
+      "/var/www/glkb/neo4j_agent/mcp_graph_agent_server.py"
+    ],
+    "has_url": false,
+    "has_headers": false,
+    "has_env_vars": false
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.274,
+  "data": {
+    "step": "MCP_SERVER_LOADING",
+    "status": "completed",
+    "total_servers_loaded": 2,
+    "server_names": [
+      "fetch",
+      "glkb_search"
+    ],
+    "success": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.274,
+  "data": {
+    "step": "OPENAI_CONFIGURATION",
+    "status": "started",
+    "message": "Configuring OpenAI settings"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "OPENAI_CONFIGURATION",
+    "status": "completed",
+    "model": "gpt-4o",
+    "api_key_exists": true,
+    "api_key_length": 164
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "AGENT_CREATION",
+    "status": "started",
+    "message": "Creating LLM and agent instances",
+    "total_agents": 4
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "MAIN_LLM_CREATION",
+    "status": "started",
+    "agent_name": "main_llm",
+    "provider": "openai",
+    "model": "gpt-4o"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.276,
+  "data": {
+    "step": "MAIN_LLM_CREATION",
+    "status": "success",
+    "agent_name": "main_llm"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.276,
+  "data": {
+    "step": "GRAPH_QUERY_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "graph_query_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.276,
+  "data": {
+    "step": "GRAPH_QUERY_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "graph_query_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.276,
+  "data": {
+    "step": "GENERAL_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "general_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.276,
+  "data": {
+    "step": "GENERAL_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "general_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.276,
+  "data": {
+    "step": "RAG_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "rag_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.276,
+  "data": {
+    "step": "RAG_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "rag_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.276,
+  "data": {
+    "step": "ROUTING_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "routing_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.276,
+  "data": {
+    "step": "AGENT_CREATION",
+    "status": "success",
+    "total_agents_created": 5,
+    "agent_names": [
+      "main_llm",
+      "graph_query_agent",
+      "general_agent",
+      "rag_agent",
+      "routing_agent"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.276,
+  "data": {
+    "step": "CHATBOT_INITIALIZATION",
+    "status": "completed",
+    "message": "Chatbot is ready for user input",
+    "model": "gpt-4o",
+    "total_agents": 5,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "step": "MCP_APP_INITIALIZATION",
+    "status": "success",
+    "app_name": "glkb_chatbot"
+  },
+  "duration_seconds": 0.276
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "step": "MCP_SERVER_LOADING",
+    "status": "started",
+    "message": "Loading MCP server configurations"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "DEBUG",
+  "event_type": "MCP_CONFIG_PATH",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "config_path": "/var/www/glkb/neo4j_agent/chatbot/mcpServers.json",
+    "exists": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "MCP_CONFIG_LOADED",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "source": "file",
+    "config_size_bytes": 277,
+    "parse_duration": 6.771087646484375e-05
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "DEBUG",
+  "event_type": "MCP_CONFIG_STRUCTURE",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "has_mcpServers_key": true,
+    "config_type": "nested"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "MCP_SERVERS_PROCESSING",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "total_servers_in_config": 2,
+    "server_names": [
+      "fetch",
+      "glkb_search"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "MCP_SERVER_ADDED",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "server_name": "fetch",
+    "transport": "stdio",
+    "command": "uvx",
+    "args": [
+      "mcp-server-fetch"
+    ],
+    "has_url": false,
+    "has_headers": false,
+    "has_env_vars": false
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "MCP_SERVER_ADDED",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "server_name": "glkb_search",
+    "transport": "stdio",
+    "command": "python",
+    "args": [
+      "/var/www/glkb/neo4j_agent/mcp_graph_agent_server.py"
+    ],
+    "has_url": false,
+    "has_headers": false,
+    "has_env_vars": false
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "step": "MCP_SERVER_LOADING",
+    "status": "completed",
+    "total_servers_loaded": 2,
+    "server_names": [
+      "fetch",
+      "glkb_search"
+    ],
+    "success": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "step": "OPENAI_CONFIGURATION",
+    "status": "started",
+    "message": "Configuring OpenAI settings"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.28,
+  "data": {
+    "step": "OPENAI_CONFIGURATION",
+    "status": "completed",
+    "model": "gpt-4o",
+    "api_key_exists": true,
+    "api_key_length": 164
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.28,
+  "data": {
+    "step": "AGENT_CREATION",
+    "status": "started",
+    "message": "Creating LLM and agent instances",
+    "total_agents": 4
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.28,
+  "data": {
+    "step": "MAIN_LLM_CREATION",
+    "status": "started",
+    "agent_name": "main_llm",
+    "provider": "openai",
+    "model": "gpt-4o"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.28,
+  "data": {
+    "step": "MAIN_LLM_CREATION",
+    "status": "success",
+    "agent_name": "main_llm"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.28,
+  "data": {
+    "step": "GRAPH_QUERY_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "graph_query_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "GRAPH_QUERY_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "graph_query_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "GENERAL_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "general_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "GENERAL_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "general_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "RAG_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "rag_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "RAG_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "rag_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "ROUTING_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "routing_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "AGENT_CREATION",
+    "status": "success",
+    "total_agents_created": 5,
+    "agent_names": [
+      "main_llm",
+      "graph_query_agent",
+      "general_agent",
+      "rag_agent",
+      "routing_agent"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:15",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "CHATBOT_INITIALIZATION",
+    "status": "completed",
+    "message": "Chatbot is ready for user input",
+    "model": "gpt-4o",
+    "total_agents": 5,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "step": "MCP_APP_INITIALIZATION",
+    "status": "success",
+    "app_name": "glkb_chatbot"
+  },
+  "duration_seconds": 0.276
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "step": "MCP_SERVER_LOADING",
+    "status": "started",
+    "message": "Loading MCP server configurations"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "DEBUG",
+  "event_type": "MCP_CONFIG_PATH",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "config_path": "/var/www/glkb/neo4j_agent/chatbot/mcpServers.json",
+    "exists": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "MCP_CONFIG_LOADED",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "source": "file",
+    "config_size_bytes": 277,
+    "parse_duration": 6.103515625e-05
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "DEBUG",
+  "event_type": "MCP_CONFIG_STRUCTURE",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "has_mcpServers_key": true,
+    "config_type": "nested"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "MCP_SERVERS_PROCESSING",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "total_servers_in_config": 2,
+    "server_names": [
+      "fetch",
+      "glkb_search"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "MCP_SERVER_ADDED",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "server_name": "fetch",
+    "transport": "stdio",
+    "command": "uvx",
+    "args": [
+      "mcp-server-fetch"
+    ],
+    "has_url": false,
+    "has_headers": false,
+    "has_env_vars": false
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "MCP_SERVER_ADDED",
+  "elapsed_seconds": 0.278,
+  "data": {
+    "server_name": "glkb_search",
+    "transport": "stdio",
+    "command": "python",
+    "args": [
+      "/var/www/glkb/neo4j_agent/mcp_graph_agent_server.py"
+    ],
+    "has_url": false,
+    "has_headers": false,
+    "has_env_vars": false
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.279,
+  "data": {
+    "step": "MCP_SERVER_LOADING",
+    "status": "completed",
+    "total_servers_loaded": 2,
+    "server_names": [
+      "fetch",
+      "glkb_search"
+    ],
+    "success": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.279,
+  "data": {
+    "step": "OPENAI_CONFIGURATION",
+    "status": "started",
+    "message": "Configuring OpenAI settings"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.28,
+  "data": {
+    "step": "OPENAI_CONFIGURATION",
+    "status": "completed",
+    "model": "gpt-4o",
+    "api_key_exists": true,
+    "api_key_length": 164
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.28,
+  "data": {
+    "step": "AGENT_CREATION",
+    "status": "started",
+    "message": "Creating LLM and agent instances",
+    "total_agents": 4
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.28,
+  "data": {
+    "step": "MAIN_LLM_CREATION",
+    "status": "started",
+    "agent_name": "main_llm",
+    "provider": "openai",
+    "model": "gpt-4o"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "MAIN_LLM_CREATION",
+    "status": "success",
+    "agent_name": "main_llm"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "GRAPH_QUERY_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "graph_query_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "GRAPH_QUERY_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "graph_query_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "GENERAL_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "general_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "GENERAL_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "general_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "RAG_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "rag_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "RAG_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "rag_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "ROUTING_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "routing_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "AGENT_CREATION",
+    "status": "success",
+    "total_agents_created": 5,
+    "agent_names": [
+      "main_llm",
+      "graph_query_agent",
+      "general_agent",
+      "rag_agent",
+      "routing_agent"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.281,
+  "data": {
+    "step": "CHATBOT_INITIALIZATION",
+    "status": "completed",
+    "message": "Chatbot is ready for user input",
+    "model": "gpt-4o",
+    "total_agents": 5,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.272,
+  "data": {
+    "step": "MCP_APP_INITIALIZATION",
+    "status": "success",
+    "app_name": "glkb_chatbot"
+  },
+  "duration_seconds": 0.27
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.272,
+  "data": {
+    "step": "MCP_SERVER_LOADING",
+    "status": "started",
+    "message": "Loading MCP server configurations"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "DEBUG",
+  "event_type": "MCP_CONFIG_PATH",
+  "elapsed_seconds": 0.272,
+  "data": {
+    "config_path": "/var/www/glkb/neo4j_agent/chatbot/mcpServers.json",
+    "exists": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "MCP_CONFIG_LOADED",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "source": "file",
+    "config_size_bytes": 277,
+    "parse_duration": 6.604194641113281e-05
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "DEBUG",
+  "event_type": "MCP_CONFIG_STRUCTURE",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "has_mcpServers_key": true,
+    "config_type": "nested"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "MCP_SERVERS_PROCESSING",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "total_servers_in_config": 2,
+    "server_names": [
+      "fetch",
+      "glkb_search"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "MCP_SERVER_ADDED",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "server_name": "fetch",
+    "transport": "stdio",
+    "command": "uvx",
+    "args": [
+      "mcp-server-fetch"
+    ],
+    "has_url": false,
+    "has_headers": false,
+    "has_env_vars": false
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "MCP_SERVER_ADDED",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "server_name": "glkb_search",
+    "transport": "stdio",
+    "command": "python",
+    "args": [
+      "/var/www/glkb/neo4j_agent/mcp_graph_agent_server.py"
+    ],
+    "has_url": false,
+    "has_headers": false,
+    "has_env_vars": false
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "step": "MCP_SERVER_LOADING",
+    "status": "completed",
+    "total_servers_loaded": 2,
+    "server_names": [
+      "fetch",
+      "glkb_search"
+    ],
+    "success": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.273,
+  "data": {
+    "step": "OPENAI_CONFIGURATION",
+    "status": "started",
+    "message": "Configuring OpenAI settings"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "OPENAI_CONFIGURATION",
+    "status": "completed",
+    "model": "gpt-4o",
+    "api_key_exists": true,
+    "api_key_length": 164
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "AGENT_CREATION",
+    "status": "started",
+    "message": "Creating LLM and agent instances",
+    "total_agents": 4
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "MAIN_LLM_CREATION",
+    "status": "started",
+    "agent_name": "main_llm",
+    "provider": "openai",
+    "model": "gpt-4o"
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "MAIN_LLM_CREATION",
+    "status": "success",
+    "agent_name": "main_llm"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "GRAPH_QUERY_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "graph_query_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "GRAPH_QUERY_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "graph_query_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "GENERAL_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "general_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "GENERAL_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "general_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_START",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "RAG_AGENT_CREATION",
+    "status": "started",
+    "agent_name": "rag_agent",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "has_instruction": true,
+    "server_count": 2
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "RAG_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "rag_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "ROUTING_AGENT_CREATION",
+    "status": "success",
+    "agent_name": "routing_agent"
+  },
+  "duration_seconds": 0.0
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "AGENT_CREATION",
+    "status": "success",
+    "total_agents_created": 5,
+    "agent_names": [
+      "main_llm",
+      "graph_query_agent",
+      "general_agent",
+      "rag_agent",
+      "routing_agent"
+    ]
+  }
+}
+
+{
+  "timestamp": "2025-09-04 15:39:16",
+  "level": "INFO",
+  "event_type": "STEP_END",
+  "elapsed_seconds": 0.275,
+  "data": {
+    "step": "CHATBOT_INITIALIZATION",
+    "status": "completed",
+    "message": "Chatbot is ready for user input",
+    "model": "gpt-4o",
+    "total_agents": 5,
+    "server_count": 2
+  }
+}
+
