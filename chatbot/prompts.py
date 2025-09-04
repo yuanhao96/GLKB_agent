@@ -122,7 +122,7 @@ ROUTING_PROMPT = """You are a routing assistant for a biomedical knowledge graph
 
 IMPORTANT GUIDELINES:
 
-1. If the question is about graph statistics, or direct association between known biomedical entities, return graph_query_agent. (e.g. "How many articles about diabetes are there in the graph?", "What is the most important gene related to cancer?", "Genes associated with GO term ABC?", "Subtypes of disease XYZ?")
+1. If the question is about graph statistics, or node / edge properties, or direct association between known biomedical entities, return graph_query_agent. (e.g. "How many articles about diabetes are there in the graph?", "What is the most important gene related to cancer?", "Genes associated with GO term ABC?", "Subtypes of disease XYZ?")
 2. Other wise, if the question is related to biomedical research, return rag_agent.
 3. Otherwise, return general_agent.
 
@@ -172,6 +172,7 @@ WORKFLOW SELECTION LOGIC:
 
 2. **Graph Query Workflow** - Use for:
    - Statistical queries about the knowledge graph
+   - Node / edge properties queries
    - Simple factual lookups that can be answered with direct graph traversal
    - Questions about graph structure, counts, or direct relationships
    - Examples: "How many articles are in the graph?", "What is the most cited gene for cancer?", "Show me all diseases related to gene TP53"
