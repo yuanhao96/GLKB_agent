@@ -1,0 +1,25 @@
+{
+    "relationships": {
+        "GWAS_association": "Sequence variant associated with phenotype or disease through GWAS",
+        "eQTL_of": "Expression quantitative trait locus affecting gene expression",
+        "express_in": "Gene expressed in specific cell line or tissue",
+        "function_annotation": "Gene annotated with gene ontology terms",
+        "include": "Transcript includes specific exon",
+        "ligand_receptor_pair": "Ligand-receptor protein interaction pair",
+        "mapping": "Mapping relationship between ontology terms",
+        "protein_interaction": "Protein-protein interaction between genes",
+        "regulate": "Enhancer regulates gene expression",
+        "replaced_by": "Ontology term replaced by another term",
+        "subclass_of": "Hierarchical relationship between ontology terms",
+        "transcribe_into": "Gene transcribed into transcript",
+        "translate_into": "Transcript translated into protein",
+        "locate_in": "Element located in specific region",
+        "overlap": "Element overlaps with specific region",
+        "same_chr": "Element located on the same chromosome"
+    },
+    "node_properties": {
+        "Article": {
+            "pubdate": "Publication year of the article"
+        }
+    }
+}

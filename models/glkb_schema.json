@@ -1,0 +1,208 @@
+{
+    "NodeTypes": {
+        "Article": {
+            "id": "String",
+            "n_citation": "Long",
+            "title": "String",
+            "pubmedid": "String",
+            "pubdate": "Long",
+            "journal": "String",
+            "authors": "StringArray",
+            "abstract": "String"
+        },
+        "AnatomicalEntity": {
+            "id": "String",
+            "n_citation": "Long",
+            "name": "String",
+            "description": "String"
+        },
+        "BiologicalProcess": {
+            "id": "String",
+            "n_citation": "Long",
+            "name": "String",
+            "description": "String"
+        },
+        "CellularComponent": {
+            "id": "String",
+            "n_citation": "Long",
+            "name": "String",
+            "description": "String"
+        },
+        "ChemicalEntity": {
+            "id": "String",
+            "n_citation": "Long",
+            "name": "String",
+            "description": "String"
+        },
+        "DiseaseOrPhenotypicFeature": {
+            "id": "String",
+            "n_citation": "Long",
+            "name": "String",
+            "description": "String"
+        },
+        "Journal": {
+            "id": "String",
+            "med_abbrevation": "String",
+            "title": "Long",
+            "issn_print": "String"
+        },
+        "Gene": {
+            "id": "String",
+            "n_citation": "Long",
+            "name": "String",
+            "description": "String"
+        },
+        "MeshTerm": {
+            "id": "String",
+            "n_citation": "Long",
+            "name": "String",
+            "description": "String"
+        },
+        "MolecularFunction": {
+            "id": "String",
+            "n_citation": "Long",
+            "name": "String",
+            "description": "String"
+        },
+        "OrganismEntity": {
+            "id": "String",
+            "n_citation": "Long",
+            "name": "String",
+            "description": "String"
+        },
+        "Pathway": {
+            "id": "String",
+            "n_citation": "Long",
+            "name": "String",
+            "description": "String"
+        },
+        "SequenceVariant": {
+            "ref": "String",
+            "alt": "String",
+            "n_citation": "Long",
+            "name": "String",
+            "rsid": "String",
+            "id": "String"
+        },
+        "Vocabulary": {
+            "id": "String",
+            "n_citation": "Long",
+            "name": "String",
+            "description": "String"
+        }
+    },
+    "RelationshipTypes": {
+        "ChemicalAffectsGeneAssociation": {
+            "_endpoints": [
+                "Vocabulary",
+                "Gene",
+                "ChemicalEntity",
+                "MeshTerm"
+            ]
+        },
+        "ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation": {
+            "_endpoints": [
+                "Vocabulary",
+                "ChemicalEntity",
+                "DiseaseOrPhenotypicFeature",
+                "MeshTerm"
+            ]
+        },
+        "Cite": {
+            "_endpoints": [
+                "Article",
+                "Article"
+            ]
+        },
+        "ContainTerm": {
+            "_endpoints": [
+                "Article",
+                "Vocabulary"
+            ]
+        },
+        "DiseaseToPhenotypicFeatureAssociation": {
+            "_endpoints": [
+                "Vocabulary",
+                "DiseaseOrPhenotypicFeature",
+                "MeshTerm"
+            ]
+        },
+        "ExposureEventToOutcomeAssociation": {
+            "_endpoints": [
+                "Vocabulary",
+                "ChemicalEntity",
+                "DiseaseOrPhenotypicFeature",
+                "MeshTerm"
+            ]
+        },
+        "GeneToDiseaseAssociation": {
+            "_endpoints": [
+                "Vocabulary",
+                "Gene",
+                "DiseaseOrPhenotypicFeature",
+                "MeshTerm"
+            ]
+        },
+        "GeneToExpressionSiteAssociation": {
+            "_endpoints": [
+                "Vocabulary",
+                "Gene",
+                "AnatomicalEntity",
+                "MeshTerm"
+            ]
+        },
+        "GeneToGeneAssociation": {
+            "_endpoints": [
+                "Vocabulary",
+                "Gene",
+                "MeshTerm"
+            ]
+        },
+        "GeneToGoTermAssociation": {
+            "_endpoints": [
+                "Vocabulary",
+                "Gene",
+                "BiologicalProcess",
+                "MolecularFunction",
+                "CellularComponent",
+                "MeshTerm"
+            ]
+        },
+        "GeneToPathwayAssociation": {
+            "_endpoints": [
+                "Vocabulary",
+                "Gene",
+                "Pathway",
+                "MeshTerm"
+            ]
+        },
+        "PublishedIn": {
+            "_endpoints": [
+                "Article",
+                "Journal"
+            ]
+        },
+        "HierarchicalStructure": {
+            "_endpoints": [
+                "Vocabulary",
+                "Vocabulary"
+            ]
+        },
+        "VariantToDiseaseAssociation": {
+            "_endpoints": [
+                "Vocabulary",
+                "SequenceVariant",
+                "DiseaseOrPhenotypicFeature",
+                "MeshTerm"
+            ]
+        },
+        "VariantToGeneAssociation": {
+            "_endpoints": [
+                "Vocabulary",
+                "SequenceVariant",
+                "Gene",
+                "MeshTerm"
+            ]
+        }
+    }
+}

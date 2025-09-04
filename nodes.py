@@ -1,0 +1,717 @@
+"""
+Copyright 2024, Zep Software, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+import logging
+from abc import ABC, abstractmethod
+from datetime import datetime
+from enum import Enum
+from time import time
+from typing import Any
+from uuid import uuid4
+
+from pydantic import BaseModel, Field
+from typing_extensions import LiteralString
+
+from driver.driver import GraphDriver, GraphProvider
+from embedder import EmbedderClient
+from errors import NodeNotFoundError
+from helpers import parse_db_date
+from models.nodes.node_db_queries import (
+    # COMMUNITY_NODE_RETURN,
+    # ENTITY_NODE_RETURN,
+    VOCABULARY_NODE_RETURN,
+    ARTICLE_NODE_RETURN,
+    ARTICLE_NODE_SAVE,
+    SENTENCE_NODE_SAVE,
+    SENTENCE_NODE_RETURN,
+    # get_community_node_save_query,
+    get_vocabulary_node_save_query,
+)
+from utils.datetime_utils import utc_now
+
+logger = logging.getLogger(__name__)
+
+
+# class EpisodeType(Enum):
+#     """
+#     Enumeration of different types of episodes that can be processed.
+
+#     This enum defines the various sources or formats of episodes that the system
+#     can handle. It's used to categorize and potentially handle different types
+#     of input data differently.
+
+#     Attributes:
+#     -----------
+#     message : str
+#         Represents a standard message-type episode. The content for this type
+#         should be formatted as "actor: content". For example, "user: Hello, how are you?"
+#         or "assistant: I'm doing well, thank you for asking."
+#     json : str
+#         Represents an episode containing a JSON string object with structured data.
+#     text : str
+#         Represents a plain text episode.
+#     """
+
+#     message = 'message'
+#     json = 'json'
+#     text = 'text'
+
+#     @staticmethod
+#     def from_str(episode_type: str):
+#         if episode_type == 'message':
+#             return EpisodeType.message
+#         if episode_type == 'json':
+#             return EpisodeType.json
+#         if episode_type == 'text':
+#             return EpisodeType.text
+#         logger.error(f'Episode type: {episode_type} not implemented')
+#         raise NotImplementedError
+
+
+class Node(BaseModel, ABC):
+    id: str = Field(description='id of the node')
+    # name: str = Field(description='name of the node')
+    # group_id: str = Field(description='partition of the graph')
+    # labels: list[str] = Field(default_factory=list)
+    # created_at: datetime = Field(default_factory=lambda: utc_now())
+
+    @abstractmethod
+    async def save(self, driver: GraphDriver): ...
+
+    async def delete(self, driver: GraphDriver):
+        await driver.execute_query(
+            """
+            MATCH (n:Vocabulary {id: $id})
+            DETACH DELETE n
+            """,
+            id=self.id,
+        )
+
+        logger.debug(f'Deleted Node: {self.id}')
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        if isinstance(other, Node):
+            return self.id == other.id
+        return False
+
+    # @classmethod
+    # async def delete_by_group_id(cls, driver: GraphDriver, group_id: str, batch_size: int = 100):
+    #     if driver.provider == GraphProvider.FALKORDB:
+    #         for label in ['Entity', 'Article', 'Community']:
+    #             await driver.execute_query(
+    #                 f"""
+    #                 MATCH (n:{label} {{group_id: $group_id}})
+    #                 DETACH DELETE n
+    #                 """,
+    #                 group_id=group_id,
+    #             )
+    #     else:
+    #         async with driver.session() as session:
+    #             await session.run(
+    #                 """
+    #                 MATCH (n:Entity|Episodic|Community {group_id: $group_id})
+    #                 CALL {
+    #                     WITH n
+    #                     DETACH DELETE n
+    #                 } IN TRANSACTIONS OF $batch_size ROWS
+    #                 """,
+    #                 group_id=group_id,
+    #                 batch_size=batch_size,
+    #             )
+
+    @classmethod
+    async def delete_by_uuids(cls, driver: GraphDriver, uuids: list[str], batch_size: int = 100):
+        async with driver.session() as session:
+            await session.run(
+                """
+                MATCH (n:Entity|Article|Community)
+                WHERE n.id IN $ids
+                CALL {
+                    WITH n
+                    DETACH DELETE n
+                } IN TRANSACTIONS OF $batch_size ROWS
+                """,
+                ids=ids,
+                batch_size=batch_size,
+            )
+
+    @classmethod
+    async def get_by_id(cls, driver: GraphDriver, id: str): ...
+
+    @classmethod
+    async def get_by_ids(cls, driver: GraphDriver, ids: list[str]): ...
+
+
+class ArticleNode(Node):
+    n_citation: int = Field(description='number of citations of the article', default=0)
+    doi: str | None = Field(description='doi of the article', default=None)
+    journal: str | None = Field(description='journal of the article', default=None)
+    pubdate: int | None = Field(description='publication year of the article', default=None)
+    authors: list[str] | None = Field(description='author list of the article', default=None)
+    pubmedid: str = Field(description='pubmedid of the article')
+    title: str = Field(description='title of the article')
+    abstract: str | None = Field(description='abstract of the article', default=None)
+    embedding: list[float] | None = Field(description='gte embedding of the article', default=None)
+    openai_embedding: list[float] | None = Field(description='openai embedding of the article', default=None)
+    source: str = Field(description='source of the article', default="PubMed")
+
+    async def save(self, driver: GraphDriver):
+        result = await driver.execute_query(
+            ARTICLE_NODE_SAVE,
+            id=self.id,
+            n_citation=self.n_citation,
+            doi=self.doi,
+            journal=self.journal,
+            pubdate=self.pubdate,
+            authors=self.authors,
+            pubmedid=self.pubmedid,
+            title=self.title,
+            abstract=self.abstract,
+            embedding=self.embedding,
+            openai_embedding=self.openai_embedding,
+        )
+
+        logger.debug(f'Saved Node to Graph: {self.id}')
+
+        return result
+
+    @classmethod
+    async def get_by_id(cls, driver: GraphDriver, id: str):
+        records, _, _ = await driver.execute_query(
+            """
+            MATCH (n:Article {id: $id})
+            RETURN
+            """
+            + ARTICLE_NODE_RETURN,
+            id=id,
+            routing_='r',
+        )
+
+        articles = [get_article_node_from_record(record) for record in records]
+
+        if len(articles) == 0:
+            raise NodeNotFoundError(id)
+
+        return articles[0]
+    
+    @classmethod
+    async def get_by_pubmedid(cls, driver: GraphDriver, pubmedid: str):
+        records, _, _ = await driver.execute_query(
+            """
+            MATCH (n:Article {pubmedid: $pubmedid})
+            RETURN
+            """
+            + ARTICLE_NODE_RETURN,
+            pubmedid=pubmedid,
+            routing_='r',
+        )
+
+        articles = [get_article_node_from_record(record) for record in records]
+
+        if len(articles) == 0:
+            raise NodeNotFoundError(pubmedid)
+
+        return articles[0]
+
+    @classmethod
+    async def get_by_ids(cls, driver: GraphDriver, ids: list[str]):
+        records, _, _ = await driver.execute_query(
+            """
+            MATCH (n:Article)
+            WHERE n.id IN $ids
+            RETURN DISTINCT
+            """
+            + ARTICLE_NODE_RETURN,
+            ids=ids,
+            routing_='r',
+        )
+
+        articles = [get_article_node_from_record(record) for record in records]
+
+        return articles
+    
+    @classmethod
+    async def get_by_pubmedids(cls, driver: GraphDriver, pubmedids: list[str]):
+        records, _, _ = await driver.execute_query(
+            """
+            MATCH (n:Article)
+            WHERE n.pubmedid IN $pubmedids
+            RETURN DISTINCT
+            """
+            + ARTICLE_NODE_RETURN,
+            pubmedids=pubmedids,
+            routing_='r',
+        )
+
+        articles = [get_article_node_from_record(record) for record in records]
+
+        return articles
+
+    @classmethod
+    async def get_by_vocabulary_ids(
+        cls,
+        driver: GraphDriver,
+        vocabulary_ids: list[str],
+        limit: int | None = 20,
+    ):
+        if limit is None:
+            limit = 20
+        limit_query: LiteralString = 'LIMIT $limit' if limit is not None else ''
+
+        records, _, _ = await driver.execute_query(
+            """
+            MATCH (n:Article)-[:ContainTerm]->(v:Vocabulary)
+            WHERE v.id IN $vocabulary_ids
+            RETURN DISTINCT
+            """
+            + ARTICLE_NODE_RETURN
+            + limit_query,
+            vocabulary_ids=vocabulary_ids,
+            limit=limit,
+            routing_='r',
+        )
+
+        articles = [get_article_node_from_record(record) for record in records]
+
+        return articles
+
+    # @classmethod
+    # async def get_by_entity_node_uuid(cls, driver: GraphDriver, entity_node_uuid: str):
+    #     records, _, _ = await driver.execute_query(
+    #         """
+    #         MATCH (e:Episodic)-[r:MENTIONS]->(n:Entity {uuid: $entity_node_uuid})
+    #         RETURN DISTINCT
+    #         """
+    #         + EPISODIC_NODE_RETURN,
+    #         entity_node_uuid=entity_node_uuid,
+    #         routing_='r',
+    #     )
+
+    #     episodes = [get_episodic_node_from_record(record) for record in records]
+
+        return episodes
+
+class SentenceNode(Node):
+    text: str = Field(description='text of the sentence')
+    informative: str = Field(description='one of ["Informative", "Non-Informative"]')
+
+    async def save(self, driver: GraphDriver):
+        result = await driver.execute_query(
+            SENTENCE_NODE_SAVE,
+            id=self.id,
+            text=self.text,
+            informative=self.informative,
+        )
+
+        logger.debug(f'Saved Sentence Node to Graph: {self.id}')
+
+        return result
+
+    @classmethod
+    async def get_by_id(cls, driver: GraphDriver, id: str):
+        records, _, _ = await driver.execute_query(
+            """
+            MATCH (n:Sentence {id: $id})
+            RETURN
+            """
+            + SENTENCE_NODE_RETURN,
+            id=id,
+            routing_='r',
+        )
+
+        nodes = [get_sentence_node_from_record(record) for record in records]
+
+        if len(nodes) == 0:
+            raise NodeNotFoundError(id)
+
+        return nodes[0]
+
+    @classmethod
+    async def get_by_ids(cls, driver: GraphDriver, ids: list[str]):
+        records, _, _ = await driver.execute_query(
+            """
+            MATCH (n:Sentence)
+            WHERE n.id IN $ids
+            RETURN
+            """
+            + SENTENCE_NODE_RETURN,
+            ids=ids,
+            routing_='r',
+        )
+
+        nodes = [get_sentence_node_from_record(record) for record in records]
+
+        return nodes
+
+    @classmethod
+    async def get_by_vocabulary_id(
+        cls,
+        driver: GraphDriver,
+        vocabulary_id: str,
+        limit: int | None = 20,
+    ):
+        if limit is None:
+            limit = 20
+        limit_query: LiteralString = 'LIMIT $limit' if limit is not None else ''
+
+        records, _, _ = await driver.execute_query(
+            """
+            MATCH (n:Sentence)-->(:GenomicMention)-->(v:Vocabulary)
+            WHERE v.id = $vocabulary_id AND n.informative = 'Informative'
+            RETURN DISTINCT
+            """
+            + SENTENCE_NODE_RETURN
+            + limit_query,
+            vocabulary_id=vocabulary_id,
+            limit=limit,
+            routing_='r',
+        )
+
+        sentences = [get_sentence_node_from_record(record) for record in records]
+        if len(sentences) < limit:
+            records, _, _ = await driver.execute_query(
+            """
+            MATCH (n:Sentence)-->(:GenomicMention)-->(v:Vocabulary)
+            WHERE v.id = $vocabulary_id
+            RETURN DISTINCT
+            """
+            + SENTENCE_NODE_RETURN
+            + limit_query,
+            vocabulary_id=vocabulary_id,
+            limit=limit,
+            routing_='r',
+            )
+            sentences.extend([get_sentence_node_from_record(record) for record in records])
+
+        return sentences[:limit]
+
+class VocabularyNode(Node):
+    name: str = Field(description='name of the vocabulary')
+    description: str | None = Field(default=None, description='description of the vocabulary')
+    embedding: list[float] | None = Field(default=None, description='embedding of the vocabulary')
+    n_citation: int | None = Field(default=None, description='number of citations of the vocabulary')
+    labels: list[str] = Field(default_factory=list, description='labels of the vocabulary node')
+    attributes: dict[str, Any] = Field(
+        default={}, description='Additional attributes of the node. Dependent on node labels'
+    )
+
+    async def generate_name_embedding(self, embedder: EmbedderClient):
+        start = time()
+        text = self.name.replace('\n', ' ') + '. ' + self.description.replace('\n', ' ')
+        self.name_embedding = await embedder.create(input_data=[text])
+        end = time()
+        logger.debug(f'embedded {text} in {end - start} ms')
+
+        return self.name_embedding
+
+    async def load_embedding(self, driver: GraphDriver):
+        records, _, _ = await driver.execute_query(
+            """
+            MATCH (n:Vocabulary {id: $id})
+            RETURN n.embedding AS embedding
+            """,
+            id=self.id,
+            routing_='r',
+        )
+
+        if len(records) == 0:
+            raise NodeNotFoundError(self.id)
+
+        self.embedding = records[0]['embedding']
+
+    async def save(self, driver: GraphDriver):
+        entity_data: dict[str, Any] = {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'embedding': self.embedding,
+        }
+        entity_data.update(self.attributes or {})
+
+        labels = ':'.join(self.labels + ['Vocabulary'])
+
+        result = await driver.execute_query(
+            get_vocabulary_node_save_query(driver.provider, labels),
+            entity_data=entity_data,
+        )
+
+        logger.debug(f'Saved Node to Graph: {self.uuid}')
+
+        return result
+
+    @classmethod
+    async def get_by_id(cls, driver: GraphDriver, id: str):
+        records, _, _ = await driver.execute_query(
+            """
+            MATCH (n:Vocabulary {id: $id})
+            RETURN
+            """
+            + VOCABULARY_NODE_RETURN,
+            id=id,
+            routing_='r',
+        )
+
+        nodes = [get_vocabulary_node_from_record(record) for record in records]
+
+        if len(nodes) == 0:
+            raise NodeNotFoundError(id)
+
+        return nodes[0]
+
+    @classmethod
+    async def get_by_ids(cls, driver: GraphDriver, ids: list[str]):
+        records, _, _ = await driver.execute_query(
+            """
+            MATCH (n:Vocabulary)
+            WHERE n.id IN $ids
+            RETURN
+            """
+            + VOCABULARY_NODE_RETURN,
+            ids=ids,
+            routing_='r',
+        )
+
+        nodes = [get_vocabulary_node_from_record(record) for record in records]
+
+        return nodes
+
+    # @classmethod
+    # async def get_by_group_ids(
+    #     cls,
+    #     driver: GraphDriver,
+    #     group_ids: list[str],
+    #     limit: int | None = None,
+    #     uuid_cursor: str | None = None,
+    #     with_embeddings: bool = False,
+    # ):
+    #     cursor_query: LiteralString = 'AND n.uuid < $uuid' if uuid_cursor else ''
+    #     limit_query: LiteralString = 'LIMIT $limit' if limit is not None else ''
+    #     with_embeddings_query: LiteralString = (
+    #         """,
+    #         n.name_embedding AS name_embedding
+    #         """
+    #         if with_embeddings
+    #         else ''
+    #     )
+
+    #     records, _, _ = await driver.execute_query(
+    #         """
+    #         MATCH (n:Entity)
+    #         WHERE n.group_id IN $group_ids
+    #         """
+    #         + cursor_query
+    #         + """
+    #         RETURN
+    #         """
+    #         + ENTITY_NODE_RETURN
+    #         + with_embeddings_query
+    #         + """
+    #         ORDER BY n.uuid DESC
+    #         """
+    #         + limit_query,
+    #         group_ids=group_ids,
+    #         uuid=uuid_cursor,
+    #         limit=limit,
+    #         routing_='r',
+    #     )
+
+    #     nodes = [get_entity_node_from_record(record) for record in records]
+
+    #     return nodes
+
+
+# class CommunityNode(Node):
+#     name_embedding: list[float] | None = Field(default=None, description='embedding of the name')
+#     summary: str = Field(description='region summary of member nodes', default_factory=str)
+
+#     async def save(self, driver: GraphDriver):
+#         result = await driver.execute_query(
+#             get_community_node_save_query(driver.provider),
+#             uuid=self.uuid,
+#             name=self.name,
+#             group_id=self.group_id,
+#             summary=self.summary,
+#             name_embedding=self.name_embedding,
+#             created_at=self.created_at,
+#         )
+
+#         logger.debug(f'Saved Node to Graph: {self.uuid}')
+
+#         return result
+
+#     async def generate_name_embedding(self, embedder: EmbedderClient):
+#         start = time()
+#         text = self.name.replace('\n', ' ')
+#         self.name_embedding = await embedder.create(input_data=[text])
+#         end = time()
+#         logger.debug(f'embedded {text} in {end - start} ms')
+
+#         return self.name_embedding
+
+#     async def load_name_embedding(self, driver: GraphDriver):
+#         records, _, _ = await driver.execute_query(
+#             """
+#             MATCH (c:Community {uuid: $uuid})
+#             RETURN c.name_embedding AS name_embedding
+#             """,
+#             uuid=self.uuid,
+#             routing_='r',
+#         )
+
+#         if len(records) == 0:
+#             raise NodeNotFoundError(self.uuid)
+
+#         self.name_embedding = records[0]['name_embedding']
+
+#     @classmethod
+#     async def get_by_uuid(cls, driver: GraphDriver, uuid: str):
+#         records, _, _ = await driver.execute_query(
+#             """
+#             MATCH (n:Community {uuid: $uuid})
+#             RETURN
+#             """
+#             + COMMUNITY_NODE_RETURN,
+#             uuid=uuid,
+#             routing_='r',
+#         )
+
+#         nodes = [get_community_node_from_record(record) for record in records]
+
+#         if len(nodes) == 0:
+#             raise NodeNotFoundError(uuid)
+
+#         return nodes[0]
+
+#     @classmethod
+#     async def get_by_uuids(cls, driver: GraphDriver, uuids: list[str]):
+#         records, _, _ = await driver.execute_query(
+#             """
+#             MATCH (n:Community)
+#             WHERE n.uuid IN $uuids
+#             RETURN
+#             """
+#             + COMMUNITY_NODE_RETURN,
+#             uuids=uuids,
+#             routing_='r',
+#         )
+
+#         communities = [get_community_node_from_record(record) for record in records]
+
+#         return communities
+
+#     @classmethod
+#     async def get_by_group_ids(
+#         cls,
+#         driver: GraphDriver,
+#         group_ids: list[str],
+#         limit: int | None = None,
+#         uuid_cursor: str | None = None,
+#     ):
+#         cursor_query: LiteralString = 'AND n.uuid < $uuid' if uuid_cursor else ''
+#         limit_query: LiteralString = 'LIMIT $limit' if limit is not None else ''
+
+#         records, _, _ = await driver.execute_query(
+#             """
+#             MATCH (n:Community)
+#             WHERE n.group_id IN $group_ids
+#             """
+#             + cursor_query
+#             + """
+#             RETURN
+#             """
+#             + COMMUNITY_NODE_RETURN
+#             + """
+#             ORDER BY n.uuid DESC
+#             """
+#             + limit_query,
+#             group_ids=group_ids,
+#             uuid=uuid_cursor,
+#             limit=limit,
+#             routing_='r',
+#         )
+
+#         communities = [get_community_node_from_record(record) for record in records]
+
+#         return communities
+
+
+# Node helpers
+def get_article_node_from_record(record: Any) -> ArticleNode:
+    # created_at = parse_db_date(record['created_at'])
+    # valid_at = parse_db_date(record['valid_at'])
+
+    # if created_at is None:
+    #     raise ValueError(f'created_at cannot be None for episode {record.get("uuid", "unknown")}')
+    # if valid_at is None:
+    #     raise ValueError(f'valid_at cannot be None for episode {record.get("uuid", "unknown")}')
+
+    return ArticleNode(
+        id=record['id'],
+        n_citation=record['n_citation'],
+        doi=record['doi'],
+        journal=record['journal'],
+        pubdate=record['pubdate'],
+        authors=record['authors'],
+        pubmedid=record['pubmedid'],
+        title=record['title'],
+        abstract=record['abstract'],
+        embedding=record['embedding'],
+        openai_embedding=record['openai_embedding'],
+        source=record['source']
+    )
+
+
+def get_sentence_node_from_record(record: Any) -> SentenceNode:
+    return SentenceNode(
+        id=record['id'],
+        text=record['text'],
+        informative=record['informative'],
+    )
+
+
+def get_vocabulary_node_from_record(record: Any) -> VocabularyNode:
+    return VocabularyNode(
+        id=record['id'],
+        name=record['name'],
+        description=record['description'],
+        embedding=record['embedding'],
+        labels=record['labels'],
+        n_citation=record.get('n_citation', None),
+        attributes=record['attributes'],
+    )
+
+
+# def get_community_node_from_record(record: Any) -> CommunityNode:
+#     return CommunityNode(
+#         uuid=record['uuid'],
+#         name=record['name'],
+#         group_id=record['group_id'],
+#         name_embedding=record['name_embedding'],
+#         created_at=parse_db_date(record['created_at']),  # type: ignore
+#         summary=record['summary'],
+#     )
+
+
+async def create_vocabulary_node_embeddings(embedder: EmbedderClient, nodes: list[VocabularyNode]):
+    if not nodes:  # Handle empty list case
+        return
+
+    embeddings = await embedder.create_batch([node.name + '. ' + node.description for node in nodes])
+    for node, embedding in zip(nodes, embeddings, strict=True):
+        node.embedding = embedding

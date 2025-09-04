@@ -1,0 +1,19 @@
+{
+    "relationships": {
+        "ChemicalAffectsGeneAssociation": "Chemical entity affects gene expression or function",
+        "ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation": "Chemical, drug, or treatment associated with disease or phenotypic feature",
+        "Cite": "Article cites another article",
+        "ContainTerm": "Article contains / related to vocabulary term",
+        "DiseaseToPhenotypicFeatureAssociation": "Disease associated with phenotypic feature",
+        "ExposureEventToOutcomeAssociation": "Exposure event associated with outcome",
+        "GeneToDiseaseAssociation": "Gene associated with disease",
+        "GeneToExpressionSiteAssociation": "Gene associated with expression site (anatomy)",
+        "GeneToGeneAssociation": "Gene associated with another gene",
+        "GeneToGoTermAssociation": "Gene associated with GO term (biological process, molecular function, or cellular component)",
+        "GeneToPathwayAssociation": "Gene associated with pathway",
+        "PublishedIn": "Article published in journal",
+        "HierarchicalStructure": "Hierarchical relationship between vocabulary terms",
+        "VariantToDiseaseAssociation": "Sequence variant associated with disease",
+        "VariantToGeneAssociation": "Sequence variant associated with gene"
+    }
+}

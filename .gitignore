@@ -1,0 +1,3 @@
+.env
+/var/www/glkb/neo4j_agent/chatbot/logs/*
+test.ipynb

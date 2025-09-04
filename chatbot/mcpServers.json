@@ -1,0 +1,15 @@
+{"mcpServers": {
+    "fetch": {
+        "command": "uvx",
+        "args": [
+            "mcp-server-fetch"
+        ]
+    },
+    "glkb_search": {
+        "command": "python",
+        "args": [
+            "/var/www/glkb/neo4j_agent/mcp_graph_agent_server.py"
+        ]
+    }
+}
+}
