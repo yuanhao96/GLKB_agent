@@ -8,8 +8,10 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from .utils import get_env_variable
-from .schema_loader import get_schema, get_schema_hints
+from .schema_loader import get_schema, get_schema_hints, get_example_queries
 
+import os
+from pathlib import Path
 
 load_dotenv()
 
@@ -64,7 +66,8 @@ class Text2CypherAgent:
         self.hints = get_schema_hints()
         self.model = get_env_variable("OPENAI_API_MODEL")
         self.formatted_output = formatted_output
-
+        self.example_queries = get_example_queries()
+        
         # Build system prompt with schema and optional hints
         whole_schema = self.schema_str.replace('{', '{{').replace('}', '}}')
         if self.formatted_output:
@@ -75,6 +78,10 @@ class Text2CypherAgent:
         if self.hints:
             hints_str = json.dumps(self.hints, indent=2).replace('{', '{{').replace('}', '}}')
             system_prompt += "\n\n### Schema Hints\n" + hints_str
+
+        if self.example_queries:
+            example_queries_str = "\n".join([f"Example {i+1}: Question: {query['question']}\nQuery: {query['query']}" for i, query in enumerate(self.example_queries)])
+            system_prompt += "\n\n### Example Queries\n" + example_queries_str
 
         self.system_prompt = system_prompt
         self.chat_history: List[Dict[str, str]] = []

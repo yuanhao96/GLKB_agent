@@ -1,0 +1,11 @@
+[
+    {
+        "question": "How many articles about [doid:10652] are published in 2020?",
+        "query": "MATCH (a:Article)-[:ContainTerm]->(v:Vocabulary) WHERE v.id IN ['doid:10652'] AND a.pubdate >= 2020 AND a.pubdate < 2021 RETURN count(a)"
+    },
+    {
+        "question": "What pathways does [hgnc:11998] participate in?",
+        "query": "MATCH (p:Pathway)<-[:GeneToPathwayAssociation]-(g:Gene {id: 'hgnc:11998'}) RETURN p.name, p.id LIMIT 10"
+    }
+    
+]

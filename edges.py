@@ -466,7 +466,7 @@ def get_semantic_edge_from_record(record: Any) -> SemanticEdge:
         pubmedids=record['pubmedids'],
         evidence=record['evidence'],
         n_article=record['n_article'],
-        source=record['source'],
+        source=record['source'] or 'PubMed',
         relationship=record['relationship'],
         evaluate=parse_db_date(record['evaluate']),  # type: ignore
     )

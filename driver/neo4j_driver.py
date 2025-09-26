@@ -47,25 +47,25 @@ class Neo4jDriver(GraphDriver):
             params = {}
         params.setdefault('database_', self._database)
 
-        print(f"[Neo4jDriver] Executing query: {cypher_query_}", file=sys.stderr)
-        print(f"[Neo4jDriver] Parameters: {params}", file=sys.stderr)
-        print(f"[Neo4jDriver] Database: {self._database}", file=sys.stderr)
-        print(f"[Neo4jDriver] Additional kwargs: {kwargs}", file=sys.stderr)
+        # print(f"[Neo4jDriver] Executing query: {cypher_query_}", file=sys.stderr)
+        # print(f"[Neo4jDriver] Parameters: {params}", file=sys.stderr)
+        # print(f"[Neo4jDriver] Database: {self._database}", file=sys.stderr)
+        # print(f"[Neo4jDriver] Additional kwargs: {kwargs}", file=sys.stderr)
 
         try:
             result = await self.client.execute_query(cypher_query_, parameters_=params, **kwargs)
-            print(f"[Neo4jDriver] Query executed successfully", file=sys.stderr)
-            print(f"[Neo4jDriver] Result type: {type(result)}", file=sys.stderr)
-            if hasattr(result, '__len__'):
-                print(f"[Neo4jDriver] Result length: {len(result)}", file=sys.stderr)
+            # print(f"[Neo4jDriver] Query executed successfully", file=sys.stderr)
+            # print(f"[Neo4jDriver] Result type: {type(result)}", file=sys.stderr)
+            # if hasattr(result, '__len__'):
+                # print(f"[Neo4jDriver] Result length: {len(result)}", file=sys.stderr)
             return result
         except Exception as e:
             error_msg = f'Error executing Neo4j query: {e}\nQuery: {cypher_query_}\nParams: {params}'
-            print(f"[Neo4jDriver] {error_msg}", file=sys.stderr)
-            print(f"[Neo4jDriver] Exception type: {type(e).__name__}", file=sys.stderr)
-            print(f"[Neo4jDriver] Exception details: {str(e)}", file=sys.stderr)
-            import traceback
-            print(f"[Neo4jDriver] Traceback: {traceback.format_exc()}", file=sys.stderr)
+            # print(f"[Neo4jDriver] {error_msg}", file=sys.stderr)
+            # print(f"[Neo4jDriver] Exception type: {type(e).__name__}", file=sys.stderr)
+            # print(f"[Neo4jDriver] Exception details: {str(e)}", file=sys.stderr)
+            # import traceback
+            # print(f"[Neo4jDriver] Traceback: {traceback.format_exc()}", file=sys.stderr)
             logger.error(error_msg)
             raise
 
