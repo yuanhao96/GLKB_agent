@@ -1,0 +1,19 @@
+# FastAPI and ASGI server
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+
+# Server-Sent Events support
+sse-starlette>=1.6.0
+
+# Async SQLite for session persistence
+aiosqlite>=0.19.0
+
+# Pydantic for data validation (included with FastAPI but pinning version)
+pydantic>=2.0.0
+
+# Google ADK (should already be installed)
+# google-adk>=0.1.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
