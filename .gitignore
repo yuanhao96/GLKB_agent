@@ -1,4 +1,43 @@
+# Environment and secrets
 .env
 my_agent/.env
-cache/
+
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+
+# ADK and agent runtime
 .adk/
+my_agent/.adk/
+
+# Logs
+agent_logs/
+my_agent/agent_logs/
+*.log
+
+# Mem0 / vector store
+memory/.mem0/
+
+# Session and local DBs
+service/sessions.db
+*.db
+
+# Caches
+cache/
+**/data/cache/
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+.claude/
+
+# Misc
+*.bak
