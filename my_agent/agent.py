@@ -55,7 +55,7 @@ from tools import glkb_tools, pubmed_tools
 # -----------------------------------------
 # Model
 # -----------------------------------------
-LLM_MODEL = LiteLlm(model="openai/gpt-4o")
+LLM_MODEL = LiteLlm(model="openai/gpt-5.2")
 
 # -----------------------------------------
 # Skill Loading Helper

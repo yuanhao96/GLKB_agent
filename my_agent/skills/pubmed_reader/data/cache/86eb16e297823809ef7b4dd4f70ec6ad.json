@@ -1,0 +1,162 @@
+{
+  "key": "search:CRISPR gene editing:3:None:None:relevance",
+  "data": {
+    "success": true,
+    "count": 23632,
+    "pmids": [
+      "31295471",
+      "28254804",
+      "30922545"
+    ],
+    "query_info": {
+      "query": "CRISPR gene editing",
+      "returned": 3,
+      "total": 23632,
+      "sort": "relevance",
+      "date_range": "any to any"
+    },
+    "validation": {
+      "passed": true,
+      "warnings": []
+    },
+    "articles": [
+      {
+        "pmid": "31295471",
+        "title": "CRISPR-Cas9 system: A new-fangled dawn in gene editing.",
+        "authors": [
+          {
+            "LastName": "Gupta",
+            "Initials": "D"
+          },
+          {
+            "LastName": "Bhattacharjee",
+            "Initials": "O"
+          },
+          {
+            "LastName": "Mandal",
+            "Initials": "D"
+          },
+          {
+            "LastName": "Sen",
+            "Initials": "MK"
+          },
+          {
+            "LastName": "Dey",
+            "Initials": "D"
+          },
+          {
+            "LastName": "Dasgupta",
+            "Initials": "A"
+          },
+          {
+            "LastName": "Kazi",
+            "Initials": "TA"
+          },
+          {
+            "LastName": "Gupta",
+            "Initials": "R"
+          },
+          {
+            "LastName": "Sinharoy",
+            "Initials": "S"
+          },
+          {
+            "LastName": "Acharya",
+            "Initials": "K"
+          },
+          {
+            "LastName": "Chattopadhyay",
+            "Initials": "D"
+          },
+          {
+            "LastName": "Ravichandiran",
+            "Initials": "V"
+          },
+          {
+            "LastName": "Roy",
+            "Initials": "S"
+          },
+          {
+            "LastName": "Ghosh",
+            "Initials": "D"
+          }
+        ],
+        "journal": "Life Sci",
+        "pub_date": "2019 Sep 1",
+        "year": 2019,
+        "volume": "232",
+        "issue": "",
+        "pages": "116636",
+        "doi": "10.1016/j.lfs.2019.116636",
+        "pmc": null,
+        "pub_types": [
+          "Journal Article",
+          "Review"
+        ]
+      },
+      {
+        "pmid": "28254804",
+        "title": "Gene Editing With CRISPR/Cas9 RNA-Directed Nuclease.",
+        "authors": [
+          {
+            "LastName": "Doetschman",
+            "Initials": "T"
+          },
+          {
+            "LastName": "Georgieva",
+            "Initials": "T"
+          }
+        ],
+        "journal": "Circ Res",
+        "pub_date": "2017 Mar 3",
+        "year": 2017,
+        "volume": "120",
+        "issue": "5",
+        "pages": "876-894",
+        "doi": "10.1161/CIRCRESAHA.116.309727",
+        "pmc": null,
+        "pub_types": [
+          "Journal Article",
+          "Review"
+        ]
+      },
+      {
+        "pmid": "30922545",
+        "title": "CRISPR-mediated gene editing for the surgeon scientist.",
+        "authors": [
+          {
+            "LastName": "O'Brien",
+            "Initials": "SJ"
+          },
+          {
+            "LastName": "Ekman",
+            "Initials": "MB"
+          },
+          {
+            "LastName": "Manek",
+            "Initials": "S"
+          },
+          {
+            "LastName": "Galandiuk",
+            "Initials": "S"
+          }
+        ],
+        "journal": "Surgery",
+        "pub_date": "2019 Aug",
+        "year": 2019,
+        "volume": "166",
+        "issue": "2",
+        "pages": "129-137",
+        "doi": "10.1016/j.surg.2019.01.030",
+        "pmc": null,
+        "pub_types": [
+          "Journal Article",
+          "Review"
+        ]
+      }
+    ]
+  },
+  "created_at": "2026-02-17T12:04:17.564182",
+  "expires_at": "2026-02-17T13:04:17.564169",
+  "ttl": 3600
+}
