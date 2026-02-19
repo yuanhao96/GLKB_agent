@@ -1,3 +1,4 @@
 .env
+my_agent/.env
 cache/
 .adk/
