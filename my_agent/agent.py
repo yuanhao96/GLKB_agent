@@ -6,7 +6,7 @@
 
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import logging
 import os
@@ -129,11 +129,21 @@ IMPORTANT:
 - If information is insufficient after querying, acknowledge limitations.
 - Kindly refuse to answer questions that are not related to biomedical research, the GLKB database, or the GLKB agent system.
 
-CITATION FORMAT:
-- When referencing a specific article, cite inline: [PMID](https://pubmed.ncbi.nlm.nih.gov/PMID)
-- Example: "TP53 plays a key role in apoptosis [38743124](https://pubmed.ncbi.nlm.nih.gov/38743124)."
-- When summarizing database/graph structure results (not articles), do not cite.
-- Use markdown headers and bullet points for well-structured answers.
+EVIDENCE AND CITATION WORKFLOW:
+1. After gathering evidence from tools, identify the specific sentences or passages
+   that directly support your answer.
+2. For each article you will cite, call `cite_evidence` with:
+   - pmid: the article's PubMed ID
+   - quote: the EXACT sentence(s) from the tool output (abstract, full text, or
+     KG evidence field) — do NOT paraphrase
+   - context_type: "abstract", "fulltext", "kg_evidence", or "title"
+3. Then write your final answer, citing articles inline:
+   [PMID](https://pubmed.ncbi.nlm.nih.gov/PMID)
+   Example: "TP53 plays a key role in apoptosis [38743124](https://pubmed.ncbi.nlm.nih.gov/38743124)."
+4. You MUST call cite_evidence before referencing a PMID in your answer.
+   Do not cite articles without registering evidence first.
+5. When summarizing database/graph structure results (not articles), do not cite.
+6. Use markdown headers and bullet points for well-structured answers.
 """
 
 # -----------------------------------------

@@ -558,7 +558,8 @@ async def stream_process(request: StreamRequest):
                 runner = get_runner()
                 response_parts = []
                 final_response = ""
-                
+                evidence_map = {}  # pmid -> list of {quote, context_type}
+
                 # Map agent names to step names
                 agent_step_map = {
                     "QuestionRouterAgent": "Routing",
@@ -591,7 +592,18 @@ async def stream_process(request: StreamRequest):
                     
                     # Map agent to step name
                     step_name = agent_step_map.get(agent_name, "Processing")
-                    
+
+                    # Capture cite_evidence tool calls for evidence mapping
+                    if tool_name == "cite_evidence" and isinstance(tool_input, dict):
+                        ev_pmid = str(tool_input.get("pmid", ""))
+                        if ev_pmid:
+                            if ev_pmid not in evidence_map:
+                                evidence_map[ev_pmid] = []
+                            evidence_map[ev_pmid].append({
+                                "quote": tool_input.get("quote", ""),
+                                "context_type": tool_input.get("context_type", "abstract"),
+                            })
+
                     # Build detailed message content
                     detail_parts = []
                     
@@ -736,37 +748,38 @@ async def stream_process(request: StreamRequest):
                 pmids.update(pmid_md_re.findall(final_response or ""))
                 pmids = sorted([p for p in pmids if p and p.isdigit()])
                 
-                # Get article references
-                references: List[List] = []
+                # Get article references (list of dicts with evidence)
+                references: List[Dict] = []
                 if pmids and _has_search_service:
                     try:
                         search_service = get_search_service()
                         article_rows = await search_service.search_articles_by_pmids(pmids[:request.max_articles])
-                        # Support both tuple (legacy) and dict (reorg SearchService) formats.
                         if article_rows and isinstance(article_rows[0], dict):
-                            references = [
-                                [
-                                    r.get("title"),
-                                    r.get("url"),
-                                    r.get("n_citation", 0),
-                                    r.get("date"),
-                                    r.get("journal"),
-                                    r.get("authors") or [],
-                                ]
-                                for r in article_rows
-                            ]
+                            for r in article_rows:
+                                ref_pmid = str(r.get("pubmedid", r.get("pmid", "")))
+                                references.append({
+                                    "pmid": ref_pmid,
+                                    "title": r.get("title"),
+                                    "url": r.get("url", f"https://pubmed.ncbi.nlm.nih.gov/{ref_pmid}/"),
+                                    "n_citation": r.get("n_citation", 0),
+                                    "date": r.get("date"),
+                                    "journal": r.get("journal"),
+                                    "authors": r.get("authors") or [],
+                                    "evidence": evidence_map.get(ref_pmid, []),
+                                })
                         else:
-                            references = [
-                                [
-                                    ref[0],  # title
-                                    ref[1],  # url
-                                    ref[2],  # n_citation
-                                    ref[3],  # date
-                                    ref[4],  # journal
-                                    ref[5] if len(ref) > 5 else [],  # authors
-                                ]
-                                for ref in (article_rows or [])
-                            ]
+                            for ref in (article_rows or []):
+                                ref_pmid = str(ref[1]).rstrip("/").split("/")[-1] if ref[1] else ""
+                                references.append({
+                                    "pmid": ref_pmid,
+                                    "title": ref[0],
+                                    "url": ref[1],
+                                    "n_citation": ref[2],
+                                    "date": ref[3],
+                                    "journal": ref[4],
+                                    "authors": ref[5] if len(ref) > 5 else [],
+                                    "evidence": evidence_map.get(ref_pmid, []),
+                                })
                     except Exception as e:
                         # Log error but don't fail the request - references are optional
                         logger.warning(f"Error fetching article references (continuing without references): {e}")
@@ -779,7 +792,16 @@ async def stream_process(request: StreamRequest):
                 # missing dependencies, Neo4j unavailable), still return a useful reference list.
                 if pmids and not references:
                     references = [
-                        [f"PMID {pmid}", f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/", 0, None, None, []]
+                        {
+                            "pmid": pmid,
+                            "title": f"PMID {pmid}",
+                            "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
+                            "n_citation": 0,
+                            "date": None,
+                            "journal": None,
+                            "authors": [],
+                            "evidence": evidence_map.get(pmid, []),
+                        }
                         for pmid in pmids[:request.max_articles]
                     ]
                 

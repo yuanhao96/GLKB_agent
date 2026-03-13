@@ -271,6 +271,37 @@ async def vocabulary_search(name: str, limit: int = 5) -> dict:
 
 
 @log_tool_call
+async def cite_evidence(
+    pmid: str,
+    quote: str,
+    context_type: str = "abstract",
+) -> dict:
+    """
+    Register a specific evidence quote from an article that supports a claim
+    in your answer. Call this BEFORE writing the final answer, once per
+    article you plan to cite.
+
+    Args:
+        pmid: PubMed ID of the source article (e.g. "38743124")
+        quote: The exact sentence or passage from the article that serves
+               as evidence. Must be copied verbatim from tool output, not
+               paraphrased.
+        context_type: Where the quote came from — one of "abstract",
+                      "fulltext", "kg_evidence" (from Cooccur evidence
+                      field), or "title"
+
+    Returns:
+        dict: Confirmation with the registered evidence
+    """
+    return {
+        "registered": True,
+        "pmid": pmid,
+        "quote": quote,
+        "context_type": context_type,
+    }
+
+
+@log_tool_call
 async def execute_cypher(query: str) -> dict:
     """
     Execute a read-only Cypher query on the GLKB database.
@@ -335,21 +366,22 @@ article_search_tool = FunctionTool(article_search)
 vocabulary_search_tool = FunctionTool(vocabulary_search)
 execute_cypher_tool = FunctionTool(execute_cypher)
 get_database_schema_tool = FunctionTool(get_database_schema)
+cite_evidence_tool = FunctionTool(cite_evidence)
 
 # Export glkb tools
 glkb_tools = [
     get_database_schema_tool,
     article_search_tool,
     vocabulary_search_tool,
-    # get_node_labels_tool,
     execute_cypher_tool,
+    cite_evidence_tool,
 ]
 
 ### PUBMED READER TOOLS (via pubmed-reader-cskill) ###
 # These tools wrap the synchronous cskill functions with async wrappers
 # using asyncio.to_thread() to avoid blocking the event loop.
 
-from skills.pubmed_reader.scripts import (
+from scripts.pubmed_reader import (
     search_pubmed as _search_pubmed,
     fetch_abstract as _fetch_abstract,
     get_fulltext as _get_fulltext,
