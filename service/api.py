@@ -504,6 +504,208 @@ async def chat_stream(
 
 
 # -----------------------------------------
+# Trajectory Builder (post-processes events into user-facing reasoning trace)
+# -----------------------------------------
+
+# Tool name -> phase mapping
+_TOOL_PHASE_MAP = {
+    "load_skill": "Preparing my approach",
+    "load_skill_resource": "Preparing my approach",
+    "get_database_schema": "Preparing my approach",
+    "article_search": "Searching for relevant articles",
+    "search_pubmed": "Searching for relevant articles",
+    "vocabulary_search": "Exploring the knowledge graph",
+    "execute_cypher": "Exploring the knowledge graph",
+    "fetch_abstract": "Reading article details",
+    "get_fulltext": "Reading article details",
+    "comprehensive_report": "Reading article details",
+    "find_similar_articles": "Following citation trails",
+    "get_citing_articles": "Following citation trails",
+    "cite_evidence": "Selecting supporting evidence",
+}
+
+# Fixed display order for phases
+_PHASE_ORDER = [
+    "Preparing my approach",
+    "Searching for relevant articles",
+    "Exploring the knowledge graph",
+    "Reading article details",
+    "Following citation trails",
+    "Selecting supporting evidence",
+]
+
+
+def _summarize_tool_call(tool_name: str, tool_input: dict, tool_output: dict) -> dict:
+    """Generate a human-readable summary for a single tool call."""
+    inp = tool_input if isinstance(tool_input, dict) else {}
+    out = tool_output if isinstance(tool_output, dict) else {}
+
+    if tool_name == "load_skill":
+        name = inp.get("name", "unknown")
+        return {"tool": tool_name, "summary": f"Loaded skill: {name}"}
+
+    if tool_name == "load_skill_resource":
+        skill = inp.get("skill_name", "")
+        resource = inp.get("resource_name", "")
+        return {"tool": tool_name, "summary": f"Loaded reference: {resource} from {skill}"}
+
+    if tool_name == "get_database_schema":
+        return {"tool": tool_name, "summary": "Retrieved GLKB database schema (node types, relationships, properties)"}
+
+    if tool_name == "article_search":
+        keywords = inp.get("keywords", [])
+        pmids = inp.get("pubmed_ids", [])
+        count = out.get("count", "?")
+        if keywords:
+            query_hint = ", ".join(keywords) if isinstance(keywords, list) else str(keywords)
+            return {"tool": tool_name, "summary": f"Searched GLKB articles for: {query_hint}", "result": f"Found {count} articles"}
+        elif pmids:
+            return {"tool": tool_name, "summary": f"Retrieved articles by PMID: {', '.join(pmids[:5])}", "result": f"Found {count} articles"}
+        return {"tool": tool_name, "summary": "Searched GLKB articles", "result": f"Found {count} articles"}
+
+    if tool_name == "search_pubmed":
+        query = inp.get("query", "")
+        min_date = inp.get("min_date", "")
+        max_date = inp.get("max_date", "")
+        count = out.get("count", "?")
+        summary = f"Searched PubMed for: {query}"
+        if min_date or max_date:
+            summary += f" ({min_date or '...'} to {max_date or 'present'})"
+        return {"tool": tool_name, "summary": summary, "result": f"Found {count} articles"}
+
+    if tool_name == "vocabulary_search":
+        name = inp.get("name", "")
+        results = out.get("related_vocabulary", [])
+        count = len(results)
+        top_names = [r.get("name", "") for r in results[:3] if r.get("name")]
+        result_hint = f"Found {count} terms"
+        if top_names:
+            result_hint += f": {', '.join(top_names)}"
+        return {"tool": tool_name, "summary": f"Looked up biomedical concept: {name}", "result": result_hint}
+
+    if tool_name == "execute_cypher":
+        query = inp.get("query", "")
+        count = out.get("count", "?")
+        # Extract relationship types and node labels for a human-readable hint
+        hint_parts = []
+        for rel in re.findall(r':(\w+(?:Association|Structure|Mapping|Cooccur|ContainTerm|Cite))', query):
+            hint_parts.append(rel)
+        for label in re.findall(r'\((?:\w+):(\w+)\)', query):
+            if label not in hint_parts:
+                hint_parts.append(label)
+        if hint_parts:
+            summary = f"Queried knowledge graph ({', '.join(hint_parts[:4])})"
+        else:
+            summary = "Queried knowledge graph"
+        return {"tool": tool_name, "summary": summary, "result": f"Returned {count} records"}
+
+    if tool_name == "fetch_abstract":
+        pmid = inp.get("pmid", "")
+        title = out.get("title", "")
+        summary = f"Read abstract of PMID {pmid}"
+        result = {"tool": tool_name, "summary": summary}
+        if title:
+            result["result"] = title
+        return result
+
+    if tool_name == "get_fulltext":
+        article_id = inp.get("article_id", "")
+        title = out.get("title", "")
+        word_count = out.get("word_count", "")
+        summary = f"Read full text of {article_id}"
+        result = {"tool": tool_name, "summary": summary}
+        if title:
+            result["result"] = title
+        if word_count:
+            result["result"] = result.get("result", "") + f" ({word_count} words)"
+        return result
+
+    if tool_name == "comprehensive_report":
+        pmid = inp.get("pmid", "")
+        title = out.get("article", {}).get("title", "") if isinstance(out.get("article"), dict) else ""
+        result = {"tool": tool_name, "summary": f"Generated comprehensive report for PMID {pmid}"}
+        if title:
+            result["result"] = title
+        return result
+
+    if tool_name == "find_similar_articles":
+        pmid = inp.get("pmid", "")
+        count = out.get("similar_count", "?")
+        return {"tool": tool_name, "summary": f"Found articles similar to PMID {pmid}", "result": f"{count} similar articles"}
+
+    if tool_name == "get_citing_articles":
+        pmid = inp.get("pmid", "")
+        count = out.get("citation_count", "?")
+        return {"tool": tool_name, "summary": f"Found articles citing PMID {pmid}", "result": f"{count} citing articles"}
+
+    # cite_evidence is aggregated separately, but handle individual if needed
+    if tool_name == "cite_evidence":
+        pmid = inp.get("pmid", "")
+        ctx = inp.get("context_type", "abstract")
+        return {"tool": tool_name, "summary": f"Selected evidence from PMID {pmid} ({ctx})", "pmid": pmid, "context_type": ctx}
+
+    # Fallback for unknown tools
+    return {"tool": tool_name, "summary": f"Called {tool_name}"}
+
+
+def _build_trajectory(events: list) -> list:
+    """
+    Build a user-facing reasoning trajectory from raw tool call events.
+
+    Args:
+        events: list of dicts with keys: tool_name, tool_input, tool_output
+
+    Returns:
+        list of phase dicts: [{phase, actions: [{tool, summary, result?}]}]
+    """
+    # Group summarized actions by phase
+    phase_actions = {phase: [] for phase in _PHASE_ORDER}
+
+    # For cite_evidence, aggregate per PMID
+    cite_counts = {}  # pmid -> {count, context_types}
+
+    for ev in events:
+        tool_name = ev.get("tool_name", "")
+        if not tool_name:
+            continue
+
+        phase = _TOOL_PHASE_MAP.get(tool_name)
+        if not phase:
+            continue
+
+        summary = _summarize_tool_call(tool_name, ev.get("tool_input", {}), ev.get("tool_output", {}))
+
+        if tool_name == "cite_evidence":
+            pmid = summary.get("pmid", "")
+            ctx = summary.get("context_type", "abstract")
+            if pmid not in cite_counts:
+                cite_counts[pmid] = {"count": 0, "context_types": set()}
+            cite_counts[pmid]["count"] += 1
+            cite_counts[pmid]["context_types"].add(ctx)
+        else:
+            phase_actions[phase].append(summary)
+
+    # Build aggregated cite_evidence actions
+    for pmid, info in cite_counts.items():
+        ctx_str = ", ".join(sorted(info["context_types"]))
+        phase_actions["Selecting supporting evidence"].append({
+            "tool": "cite_evidence",
+            "summary": f"Selected {info['count']} passage{'s' if info['count'] > 1 else ''} from PMID {pmid} ({ctx_str})",
+        })
+
+    # Build final trajectory, only include phases that have actions
+    trajectory = []
+    for phase in _PHASE_ORDER:
+        if phase_actions[phase]:
+            trajectory.append({
+                "phase": phase,
+                "actions": phase_actions[phase],
+            })
+
+    return trajectory
+
+
+# -----------------------------------------
 # Simple Stream Endpoint (mimics glkb_agent_service.py)
 # -----------------------------------------
 
@@ -559,6 +761,7 @@ async def stream_process(request: StreamRequest):
                 response_parts = []
                 final_response = ""
                 evidence_map = {}  # pmid -> list of {quote, context_type}
+                trajectory_events = []  # raw tool calls for trajectory builder
 
                 # Map agent names to step names
                 agent_step_map = {
@@ -602,6 +805,31 @@ async def stream_process(request: StreamRequest):
                             evidence_map[ev_pmid].append({
                                 "quote": tool_input.get("quote", ""),
                                 "context_type": tool_input.get("context_type", "abstract"),
+                            })
+
+                    # Capture tool events for trajectory builder
+                    if tool_name:
+                        if tool_output:
+                            # Tool result event — merge output into last matching call
+                            merged = False
+                            for ev in reversed(trajectory_events):
+                                if ev["tool_name"] == tool_name and not ev["tool_output"]:
+                                    ev["tool_output"] = tool_output if isinstance(tool_output, dict) else {}
+                                    merged = True
+                                    break
+                            if not merged:
+                                # Result without a prior call (e.g. no-arg tools) — create entry
+                                trajectory_events.append({
+                                    "tool_name": tool_name,
+                                    "tool_input": tool_input if isinstance(tool_input, dict) else {},
+                                    "tool_output": tool_output if isinstance(tool_output, dict) else {},
+                                })
+                        elif isinstance(tool_input, dict) and tool_input:
+                            # Tool call event with input args — record it
+                            trajectory_events.append({
+                                "tool_name": tool_name,
+                                "tool_input": tool_input,
+                                "tool_output": {},
                             })
 
                     # Build detailed message content
@@ -812,12 +1040,16 @@ async def stream_process(request: StreamRequest):
                 
                 # Calculate execution time
                 execution_time = time.time() - step_start_time
-                
+
+                # Build reasoning trajectory from collected tool events
+                trajectory = _build_trajectory(trajectory_events)
+
                 # Send final completion message
                 yield send_message({
                     'step': 'Complete',
                     'response': final_response,
                     'references': references,
+                    'trajectory': trajectory,
                     'execution_time': execution_time,
                     'messages': request.messages,
                     'session_id': session_id,
