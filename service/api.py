@@ -757,6 +757,11 @@ async def stream_process(request: StreamRequest):
                         if article_rows and isinstance(article_rows[0], dict):
                             for r in article_rows:
                                 ref_pmid = str(r.get("pubmedid", r.get("pmid", "")))
+                                # Fallback: extract PMID from URL if not in dict keys
+                                if not ref_pmid:
+                                    url = r.get("url", "")
+                                    url_match = pmid_url_re.search(url)
+                                    ref_pmid = url_match.group(1) if url_match else ""
                                 references.append({
                                     "pmid": ref_pmid,
                                     "title": r.get("title"),
