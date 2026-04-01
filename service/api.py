@@ -42,6 +42,8 @@ from .models import (
     CreateSessionResponse,
     ChatRequest,
     ChatResponse,
+    RewindRequest,
+    RewindResponse,
     SessionInfo,
     SessionListResponse,
     HealthResponse,
@@ -760,6 +762,7 @@ async def stream_process(request: StreamRequest):
                 runner = get_runner()
                 response_parts = []
                 final_response = ""
+                invocation_id = None
                 evidence_map = {}  # pmid -> list of {quote, context_type}
                 trajectory_events = []  # raw tool calls for trajectory builder
 
@@ -792,6 +795,10 @@ async def stream_process(request: StreamRequest):
                     tool_input = event_dict.get("tool_input", "")
                     tool_output = event_dict.get("tool_output", "")
                     timestamp = event_dict.get("timestamp", "")
+
+                    # Capture invocation_id from the first event that has one
+                    if invocation_id is None and event_dict.get("invocation_id"):
+                        invocation_id = event_dict["invocation_id"]
                     
                     # Map agent to step name
                     step_name = agent_step_map.get(agent_name, "Processing")
@@ -806,6 +813,55 @@ async def stream_process(request: StreamRequest):
                                 "quote": tool_input.get("quote", ""),
                                 "context_type": tool_input.get("context_type", "abstract"),
                             })
+
+                    # Auto-capture abstracts from search_pubmed results
+                    if tool_name == "search_pubmed" and isinstance(tool_output, dict):
+                        for sp_article in tool_output.get("articles", []):
+                            sp_pmid = str(sp_article.get("pmid", ""))
+                            sp_abstract = sp_article.get("abstract", "")
+                            if sp_pmid and sp_abstract:
+                                if sp_pmid not in evidence_map:
+                                    evidence_map[sp_pmid] = []
+                                # Only add if no evidence yet for this PMID
+                                if not evidence_map[sp_pmid]:
+                                    evidence_map[sp_pmid].append({
+                                        "quote": sp_abstract,
+                                        "context_type": "abstract",
+                                        "auto": True,
+                                    })
+
+                    # Auto-capture abstract from fetch_abstract results
+                    if tool_name == "fetch_abstract" and isinstance(tool_output, dict):
+                        fa_pmid = str(tool_output.get("pmid", ""))
+                        fa_abstract = tool_output.get("abstract", "")
+                        if fa_pmid and fa_abstract:
+                            # Replace any auto-captured evidence with the
+                            # directly-fetched abstract (same content, but
+                            # confirms the agent read this article)
+                            evidence_map[fa_pmid] = [
+                                e for e in evidence_map.get(fa_pmid, [])
+                                if not e.get("auto")
+                            ]
+                            evidence_map[fa_pmid].append({
+                                "quote": fa_abstract,
+                                "context_type": "abstract",
+                                "auto": True,
+                            })
+
+                    # Auto-capture abstracts from article_search (GLKB KG) results
+                    if tool_name == "article_search" and isinstance(tool_output, dict):
+                        for as_article in tool_output.get("results", []):
+                            as_pmid = str(as_article.get("pubmedid", ""))
+                            as_abstract = as_article.get("abstract", "")
+                            if as_pmid and as_abstract:
+                                if as_pmid not in evidence_map:
+                                    evidence_map[as_pmid] = []
+                                if not evidence_map[as_pmid]:
+                                    evidence_map[as_pmid].append({
+                                        "quote": as_abstract,
+                                        "context_type": "abstract",
+                                        "auto": True,
+                                    })
 
                     # Capture tool events for trajectory builder
                     if tool_name:
@@ -967,6 +1023,16 @@ async def stream_process(request: StreamRequest):
                 if not final_response:
                     final_response = "I couldn't find an answer to your question."
                 
+                # Finalize evidence_map: if cite_evidence provided specific
+                # quotes for a PMID, drop the auto-captured abstract fallback.
+                # Then strip the internal "auto" flag before output.
+                for ev_pmid, ev_list in evidence_map.items():
+                    has_manual = any(not e.get("auto") for e in ev_list)
+                    if has_manual:
+                        evidence_map[ev_pmid] = [e for e in ev_list if not e.get("auto")]
+                    for e in evidence_map[ev_pmid]:
+                        e.pop("auto", None)
+
                 # Extract PMIDs from response.
                 # The structured `references` field is populated by looking for PubMed URLs/PMID-style
                 # markdown links in the final response text.
@@ -1053,6 +1119,7 @@ async def stream_process(request: StreamRequest):
                     'execution_time': execution_time,
                     'messages': request.messages,
                     'session_id': session_id,
+                    'invocation_id': invocation_id,
                     'done': True
                 })
                 
@@ -1092,6 +1159,69 @@ async def stream_process(request: StreamRequest):
 # -----------------------------------------
 # Message History Endpoint
 # -----------------------------------------
+
+@app.post(
+    "/apps/{app_name}/users/{user_id}/sessions/{session_id}/rewind",
+    tags=["Chat"],
+    summary="Rewind a session to before a given invocation",
+    response_model=RewindResponse
+)
+async def rewind_session(
+    app_name: str,
+    user_id: str,
+    session_id: str,
+    request: RewindRequest
+):
+    """
+    Rewind a session to the state before a given invocation.
+
+    Removes the specified invocation and all subsequent ones from the
+    agent's memory and the stored message history.
+
+    Use this to implement "edit message" or "regenerate answer":
+    1. Call this endpoint with the invocation_id of the turn to undo
+    2. Call /chat or /chat/stream with the new (or same) message
+
+    - **app_name**: Name of the application
+    - **user_id**: User identifier
+    - **session_id**: Session identifier
+    - **invocation_id**: The invocation to rewind before (this turn and all after it are removed)
+    """
+    # Verify session exists
+    session_service = get_session_service()
+    session = await session_service.get_session(app_name, user_id, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    try:
+        runner = get_runner()
+        result = await runner.rewind(
+            app_name=app_name,
+            user_id=user_id,
+            session_id=session_id,
+            invocation_id=request.invocation_id,
+        )
+        return RewindResponse(
+            session_id=session_id,
+            rewound_invocation_ids=result["rewound_invocation_ids"],
+            remaining_message_count=result["remaining_message_count"],
+            messages=[
+                {
+                    "id": m["id"],
+                    "role": m["role"],
+                    "content": m["content"],
+                    "timestamp": m["timestamp"],
+                    "invocation_id": m.get("invocation_id"),
+                }
+                for m in result["messages"]
+            ],
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error rewinding session: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get(
     "/apps/{app_name}/users/{user_id}/sessions/{session_id}/messages",

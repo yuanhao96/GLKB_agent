@@ -137,11 +137,13 @@ EVIDENCE AND CITATION WORKFLOW:
    - quote: the EXACT sentence(s) from the tool output (abstract, full text, or
      KG evidence field) — do NOT paraphrase
    - context_type: "abstract", "fulltext", "kg_evidence", or "title"
-3. Then write your final answer, citing articles inline:
+3. You MUST call cite_evidence before referencing a PMID in your answer.
+   Do not cite articles without registering evidence first.
+   If you cannot find a specific supporting quote, the system will fall back to
+   the article abstract automatically — but specific quotes are always preferred.
+4. Then write your final answer, citing articles inline:
    [PMID](https://pubmed.ncbi.nlm.nih.gov/PMID)
    Example: "TP53 plays a key role in apoptosis [38743124](https://pubmed.ncbi.nlm.nih.gov/38743124)."
-4. You MUST call cite_evidence before referencing a PMID in your answer.
-   Do not cite articles without registering evidence first.
 5. When summarizing database/graph structure results (not articles), do not cite.
 6. Use markdown headers and bullet points for well-structured answers.
 """

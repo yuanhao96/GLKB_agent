@@ -423,6 +423,7 @@ async def search_pubmed(
         max_date=max_date,
         sort=sort,
         include_summaries=True,
+        include_abstracts=True,
     )
 
 
