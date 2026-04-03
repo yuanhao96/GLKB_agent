@@ -48,11 +48,15 @@ def event_to_dict(event: Event) -> Dict[str, Any]:
     result = {
         "timestamp": datetime.utcnow().isoformat(),
     }
-    
+
+    # Extract invocation_id
+    if hasattr(event, 'invocation_id') and event.invocation_id:
+        result["invocation_id"] = event.invocation_id
+
     # Extract event type
     if hasattr(event, '__class__'):
         result["type"] = event.__class__.__name__
-    
+
     # Extract agent name if available
     if hasattr(event, 'author'):
         result["agent_name"] = event.author
@@ -175,10 +179,10 @@ class AgentRunner:
                 )
                 # Use appropriate author: "user" for user messages, agent name for assistant
                 author = "user" if msg.role == "user" else self.agent.name if hasattr(self.agent, 'name') else "assistant"
-                event = Event(
-                    author=author,
-                    content=event_content
-                )
+                event_kwargs = dict(author=author, content=event_content)
+                if msg.invocation_id:
+                    event_kwargs["invocation_id"] = msg.invocation_id
+                event = Event(**event_kwargs)
                 await self._adk_session_service.append_event(adk_session, event)
         else:
             # Update ADK session state from SQLite
@@ -198,10 +202,10 @@ class AgentRunner:
                         parts=[Part(text=msg.content)]
                     )
                     author = "user" if msg.role == "user" else self.agent.name if hasattr(self.agent, 'name') else "assistant"
-                    event = Event(
-                        author=author,
-                        content=event_content
-                    )
+                    event_kwargs = dict(author=author, content=event_content)
+                    if msg.invocation_id:
+                        event_kwargs["invocation_id"] = msg.invocation_id
+                    event = Event(**event_kwargs)
                     await self._adk_session_service.append_event(adk_session, event)
 
         return adk_session
@@ -236,39 +240,40 @@ class AgentRunner:
     ) -> RunResult:
         """
         Run the agent with a message and return the complete result.
-        
+
         Args:
             app_name: Application name
             user_id: User identifier
             session_id: Session identifier
             message: User's message
-            
+
         Returns:
             RunResult with response, events, and updated state
         """
-        # Store user message
-        await self.session_service.add_message(session_id, "user", message)
-        
+        # Store user message (invocation_id will be updated after run)
+        user_msg = await self.session_service.add_message(session_id, "user", message)
+
         # Get ADK session
         adk_session = await self._get_or_create_adk_session(app_name, user_id, session_id)
-        
+
         # Create runner
         runner = Runner(
             agent=self.agent,
             app_name=app_name,
             session_service=self._adk_session_service
         )
-        
+
         # Collect events and response
         events = []
         response_parts = []
-        
+        invocation_id = None
+
         # Format message as Content object
         user_content = Content(
             role="user",
             parts=[Part(text=message)]
         )
-        
+
         # Run agent
         async for event in runner.run_async(
             user_id=user_id,
@@ -277,18 +282,28 @@ class AgentRunner:
         ):
             event_dict = event_to_dict(event)
             events.append(event_dict)
-            
+
+            # Capture invocation_id from the first event that has one
+            if invocation_id is None and event_dict.get("invocation_id"):
+                invocation_id = event_dict["invocation_id"]
+
             # Collect text content for final response
             if "content" in event_dict and event_dict.get("type") != "ToolCallEvent":
                 response_parts.append(event_dict["content"])
-        
+
         # Get final response (last non-empty content)
         response = ""
         for part in reversed(response_parts):
             if part and part.strip():
                 response = part
                 break
-        
+
+        # Update user message with invocation_id now that we have it
+        if invocation_id:
+            await self.session_service.update_message_invocation_id(
+                user_msg.id, invocation_id
+            )
+
         # Sync state back to SQLite
         updated_session = await self._adk_session_service.get_session(
             app_name=app_name,
@@ -297,11 +312,14 @@ class AgentRunner:
         )
         state = dict(updated_session.state) if updated_session else {}
         await self._sync_state_to_sqlite(app_name, user_id, session_id, state)
-        
-        # Store assistant response
+
+        # Store assistant response with invocation_id
         if response:
-            await self.session_service.add_message(session_id, "assistant", response)
-        
+            await self.session_service.add_message(
+                session_id, "assistant", response,
+                invocation_id=invocation_id
+            )
+
         return RunResult(
             response=response,
             events=events,
@@ -317,37 +335,38 @@ class AgentRunner:
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Run the agent with streaming, yielding events as they occur.
-        
+
         Args:
             app_name: Application name
             user_id: User identifier
             session_id: Session identifier
             message: User's message
-            
+
         Yields:
             Event dictionaries as they occur
         """
-        # Store user message
-        await self.session_service.add_message(session_id, "user", message)
-        
+        # Store user message (invocation_id will be updated after run)
+        user_msg = await self.session_service.add_message(session_id, "user", message)
+
         # Get ADK session
         adk_session = await self._get_or_create_adk_session(app_name, user_id, session_id)
-        
+
         # Create runner
         runner = Runner(
             agent=self.agent,
             app_name=app_name,
             session_service=self._adk_session_service
         )
-        
+
         response_parts = []
-        
+        invocation_id = None
+
         # Format message as Content object
         user_content = Content(
             role="user",
             parts=[Part(text=message)]
         )
-        
+
         # Run agent and stream events
         async for event in runner.run_async(
             user_id=user_id,
@@ -355,20 +374,30 @@ class AgentRunner:
             new_message=user_content
         ):
             event_dict = event_to_dict(event)
-            
+
+            # Capture invocation_id from the first event that has one
+            if invocation_id is None and event_dict.get("invocation_id"):
+                invocation_id = event_dict["invocation_id"]
+
             # Collect text content for final response
             if "content" in event_dict and event_dict.get("type") != "ToolCallEvent":
                 response_parts.append(event_dict["content"])
-            
+
             yield event_dict
-        
+
         # Get final response
         response = ""
         for part in reversed(response_parts):
             if part and part.strip():
                 response = part
                 break
-        
+
+        # Update user message with invocation_id now that we have it
+        if invocation_id:
+            await self.session_service.update_message_invocation_id(
+                user_msg.id, invocation_id
+            )
+
         # Sync state back to SQLite
         updated_session = await self._adk_session_service.get_session(
             app_name=app_name,
@@ -377,13 +406,79 @@ class AgentRunner:
         )
         if updated_session:
             await self._sync_state_to_sqlite(
-                app_name, user_id, session_id, 
+                app_name, user_id, session_id,
                 dict(updated_session.state)
             )
-        
-        # Store assistant response
+
+        # Store assistant response with invocation_id
         if response:
-            await self.session_service.add_message(session_id, "assistant", response)
+            await self.session_service.add_message(
+                session_id, "assistant", response,
+                invocation_id=invocation_id
+            )
+
+
+    async def rewind(
+        self,
+        app_name: str,
+        user_id: str,
+        session_id: str,
+        invocation_id: str
+    ) -> Dict[str, Any]:
+        """
+        Rewind a session to before a given invocation.
+
+        Calls ADK's rewind_async to restore the agent's memory, then
+        removes the corresponding messages from SQLite to keep them in sync.
+
+        Args:
+            app_name: Application name
+            user_id: User identifier
+            session_id: Session identifier
+            invocation_id: The invocation ID to rewind before (inclusive)
+
+        Returns:
+            Dict with rewound_invocation_ids, remaining_message_count, and messages
+        """
+        # Ensure the ADK session exists in memory
+        await self._get_or_create_adk_session(app_name, user_id, session_id)
+
+        # Create runner and call ADK rewind
+        runner = Runner(
+            agent=self.agent,
+            app_name=app_name,
+            session_service=self._adk_session_service
+        )
+        await runner.rewind_async(
+            user_id=user_id,
+            session_id=session_id,
+            rewind_before_invocation_id=invocation_id,
+        )
+
+        # Sync: delete messages from SQLite for the rewound invocations
+        removed_ids = await self.session_service.delete_messages_from_invocation(
+            session_id, invocation_id
+        )
+
+        # Sync ADK state back to SQLite
+        updated_session = await self._adk_session_service.get_session(
+            app_name=app_name,
+            user_id=user_id,
+            session_id=session_id
+        )
+        if updated_session:
+            await self._sync_state_to_sqlite(
+                app_name, user_id, session_id,
+                dict(updated_session.state)
+            )
+
+        # Return updated message list
+        remaining = await self.session_service.get_messages(session_id)
+        return {
+            "rewound_invocation_ids": removed_ids,
+            "remaining_message_count": len(remaining),
+            "messages": [msg.to_dict() for msg in remaining],
+        }
 
 
 # Global runner instance (initialized on first use)

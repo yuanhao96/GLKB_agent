@@ -31,6 +31,14 @@ class ChatRequest(BaseModel):
     )
 
 
+class RewindRequest(BaseModel):
+    """Request body for rewinding a session to a previous state."""
+    invocation_id: str = Field(
+        ...,
+        description="The invocation ID to rewind before. Removes this invocation and all subsequent ones."
+    )
+
+
 # -----------------------------------------
 # Response Models
 # -----------------------------------------
@@ -41,6 +49,7 @@ class MessageInfo(BaseModel):
     role: str  # "user" or "assistant"
     content: str
     timestamp: datetime
+    invocation_id: Optional[str] = None
 
 
 class SessionInfo(BaseModel):
@@ -91,6 +100,14 @@ class HealthResponse(BaseModel):
     """Health check response."""
     status: str = "healthy"
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class RewindResponse(BaseModel):
+    """Response after rewinding a session."""
+    session_id: str
+    rewound_invocation_ids: List[str] = Field(default_factory=list)
+    remaining_message_count: int
+    messages: List[MessageInfo] = Field(default_factory=list)
 
 
 class ErrorResponse(BaseModel):

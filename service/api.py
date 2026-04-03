@@ -52,12 +52,37 @@ from .models import (
 from .session_service import get_session_service
 from .runner import get_runner
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+# Configure logging — use a dedicated named logger with its own file handler
+# so third-party libraries (LiteLLM, ADK) can't override it via root logger.
+_LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "agent_logs")
+os.makedirs(_LOG_DIR, exist_ok=True)
+_LOG_FILE = os.path.join(_LOG_DIR, "agent.log")
+_LOG_FORMAT = "%(asctime)s - %(levelname)s - [pid:%(process)d] %(message)s"
+
+def _get_agent_logger() -> logging.Logger:
+    """Create a self-contained logger that writes to agent.log and stderr.
+
+    Uses propagate=False so root-logger reconfigurations by LiteLLM/ADK
+    cannot silently swallow our log messages.
+    """
+    _logger = logging.getLogger("glkb_agent_service")
+    if _logger.handlers:          # already set up (module re-import guard)
+        return _logger
+    _logger.setLevel(logging.INFO)
+    _logger.propagate = False     # critical: isolate from root logger
+
+    fh = logging.FileHandler(_LOG_FILE)
+    fh.setLevel(logging.INFO)
+    fh.setFormatter(logging.Formatter(_LOG_FORMAT))
+    _logger.addHandler(fh)
+
+    sh = logging.StreamHandler()
+    sh.setLevel(logging.INFO)
+    sh.setFormatter(logging.Formatter(_LOG_FORMAT))
+    _logger.addHandler(sh)
+    return _logger
+
+logger = _get_agent_logger()
 
 # Import search service for reference generation
 try:
@@ -68,13 +93,6 @@ except ImportError as e:
     logger.warning(f"Could not import search service: {e}. Reference generation will be disabled.")
     get_search_service = None
     _has_search_service = False
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
 
 
 # -----------------------------------------
@@ -735,7 +753,8 @@ async def stream_process(request: StreamRequest):
     try:
         question = request.question
         step_start_time = time.time()
-        
+        logger.info(f"[STREAM REQUEST] question={question!r} session_id={request.session_id}")
+
         # Create a temporary session for this request
         session_service = get_session_service()
         app_name = "glkb"
@@ -1110,6 +1129,10 @@ async def stream_process(request: StreamRequest):
                 # Build reasoning trajectory from collected tool events
                 trajectory = _build_trajectory(trajectory_events)
 
+                # Log completion BEFORE the final yield (generator may be
+                # cancelled by client disconnect after the last yield)
+                logger.info(f"[STREAM COMPLETE] question={question!r} session_id={session_id} time={execution_time:.1f}s refs={len(pmids)}")
+
                 # Send final completion message
                 yield send_message({
                     'step': 'Complete',
@@ -1130,9 +1153,11 @@ async def stream_process(request: StreamRequest):
                 #     pass
                     
             except Exception as e:
+                import traceback
+                tb_str = traceback.format_exc()
                 error_msg = f"Error processing question: {str(e)}"
                 logger.error(f"Error in stream_process: {e}", exc_info=True)
-                
+
                 yield send_message({
                     'step': 'Error',
                     'content': error_msg,

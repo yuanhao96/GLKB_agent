@@ -305,7 +305,11 @@ def parse_bioc_json(data: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Parsed full text dict
     """
-    documents = data.get("documents", [])
+    # BioC API may return a list (documents array) or a dict with a "documents" key
+    if isinstance(data, list):
+        documents = data
+    else:
+        documents = data.get("documents", [])
     if not documents:
         return {
             "success": False,

@@ -23,7 +23,8 @@ from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParamet
 from neo4j import GraphDatabase, READ_ACCESS
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
-logger = logging.getLogger(__name__)
+# Use the shared agent logger (propagate=False, immune to root-logger reconfig)
+logger = logging.getLogger("glkb_agent_service")
 
 # -----------------------------------------
 # Logging Decorator for Tools
@@ -52,7 +53,7 @@ def log_tool_call(func):
             logger.info(f"[TOOL RESULT] {tool_name} | Output: {result_str}")
             return result
         except Exception as e:
-            logger.error(f"[TOOL ERROR] {tool_name} | Error: {str(e)}")
+            logger.error(f"[TOOL ERROR] {tool_name} | Error: {str(e)}", exc_info=True)
             raise
     return wrapper
 

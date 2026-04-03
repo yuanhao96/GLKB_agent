@@ -45,15 +45,19 @@ class Message:
     role: str  # "user" or "assistant"
     content: str
     timestamp: datetime = field(default_factory=datetime.utcnow)
-    
+    invocation_id: Optional[str] = None
+
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        result = {
             "id": self.id,
             "session_id": self.session_id,
             "role": self.role,
             "content": self.content,
             "timestamp": self.timestamp.isoformat(),
         }
+        if self.invocation_id:
+            result["invocation_id"] = self.invocation_id
+        return result
 
 
 class SQLiteSessionService:
@@ -106,12 +110,24 @@ class SQLiteSessionService:
             
             # Create index on session_id for faster message lookups
             await db.execute("""
-                CREATE INDEX IF NOT EXISTS idx_messages_session 
+                CREATE INDEX IF NOT EXISTS idx_messages_session
                 ON messages(session_id)
             """)
-            
+
+            # Migration: add invocation_id column if missing (for existing DBs)
+            cursor = await db.execute("PRAGMA table_info(messages)")
+            columns = [row[1] for row in await cursor.fetchall()]
+            if "invocation_id" not in columns:
+                await db.execute(
+                    "ALTER TABLE messages ADD COLUMN invocation_id TEXT"
+                )
+                await db.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_messages_invocation
+                    ON messages(session_id, invocation_id)
+                """)
+
             await db.commit()
-        
+
         self._initialized = True
     
     async def create_session(
@@ -317,40 +333,43 @@ class SQLiteSessionService:
         self,
         session_id: str,
         role: str,
-        content: str
+        content: str,
+        invocation_id: Optional[str] = None
     ) -> Message:
         """
         Add a message to a session's conversation history.
-        
+
         Args:
             session_id: Session identifier
             role: Message role ("user" or "assistant")
             content: Message content
-            
+            invocation_id: Optional ADK invocation ID for this turn
+
         Returns:
             Created Message object
         """
         await self.initialize()
-        
+
         now = datetime.utcnow()
-        
+
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute(
                 """
-                INSERT INTO messages (session_id, role, content, timestamp)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO messages (session_id, role, content, timestamp, invocation_id)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (session_id, role, content, now)
+                (session_id, role, content, now, invocation_id)
             )
             await db.commit()
             message_id = cursor.lastrowid
-        
+
         return Message(
             id=message_id,
             session_id=session_id,
             role=role,
             content=content,
-            timestamp=now
+            timestamp=now,
+            invocation_id=invocation_id
         )
     
     async def get_messages(
@@ -375,7 +394,7 @@ class SQLiteSessionService:
             db.row_factory = aiosqlite.Row
             async with db.execute(
                 """
-                SELECT id, session_id, role, content, timestamp
+                SELECT id, session_id, role, content, timestamp, invocation_id
                 FROM messages
                 WHERE session_id = ?
                 ORDER BY timestamp ASC
@@ -389,11 +408,80 @@ class SQLiteSessionService:
                         session_id=row["session_id"],
                         role=row["role"],
                         content=row["content"],
-                        timestamp=datetime.fromisoformat(row["timestamp"]) if isinstance(row["timestamp"], str) else row["timestamp"]
+                        timestamp=datetime.fromisoformat(row["timestamp"]) if isinstance(row["timestamp"], str) else row["timestamp"],
+                        invocation_id=row["invocation_id"]
                     ))
-        
+
         return messages
     
+    async def update_message_invocation_id(
+        self,
+        message_id: int,
+        invocation_id: str
+    ):
+        """Update the invocation_id of an existing message."""
+        await self.initialize()
+
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                "UPDATE messages SET invocation_id = ? WHERE id = ?",
+                (invocation_id, message_id)
+            )
+            await db.commit()
+
+    async def delete_messages_from_invocation(
+        self,
+        session_id: str,
+        invocation_id: str
+    ) -> List[str]:
+        """
+        Delete messages with the given invocation_id and all later messages.
+
+        Args:
+            session_id: Session identifier
+            invocation_id: The invocation ID to rewind from (inclusive)
+
+        Returns:
+            List of invocation_ids that were removed
+        """
+        await self.initialize()
+
+        async with aiosqlite.connect(self.db_path) as db:
+            # Find the timestamp of the first message with this invocation_id
+            async with db.execute(
+                """
+                SELECT MIN(timestamp) FROM messages
+                WHERE session_id = ? AND invocation_id = ?
+                """,
+                (session_id, invocation_id)
+            ) as cursor:
+                row = await cursor.fetchone()
+                if row is None or row[0] is None:
+                    return []
+                cutoff_timestamp = row[0]
+
+            # Collect distinct invocation_ids that will be removed
+            async with db.execute(
+                """
+                SELECT DISTINCT invocation_id FROM messages
+                WHERE session_id = ? AND timestamp >= ? AND invocation_id IS NOT NULL
+                """,
+                (session_id, cutoff_timestamp)
+            ) as cursor:
+                removed_ids = [r[0] for r in await cursor.fetchall()]
+
+            # Delete all messages at or after the cutoff
+            await db.execute(
+                """
+                DELETE FROM messages
+                WHERE session_id = ? AND timestamp >= ?
+                """,
+                (session_id, cutoff_timestamp)
+            )
+            await db.commit()
+
+        return removed_ids
+
     async def get_message_count(self, session_id: str) -> int:
         """
         Get the number of messages in a session.
