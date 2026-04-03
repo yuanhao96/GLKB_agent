@@ -50,14 +50,29 @@ Given the user's biomedical question, you must:
 
 ## Cypher Guidelines
 
-- When creating Cypher queries, focus on creating efficient and precise queries:
-  - Always specify node labels and relationship types in the query to reduce the result set.
-  - Always use LIMIT clauses (typically 50-100) with WITH clause to prevent large result sets, combined with ORDER BY clause to sort results by importance.
-  - Use DISTINCT in your query to avoid duplicates.
-  - Choose appropriate aggregation functions to summarize the results if necessary (e.g., COUNT or SUM when the question asks "how many" or "what is the total").
-- Always use indexed properties to create efficient queries if possible, including:
-  - Vocabulary node: id
-  - Article node: pubmedid, pubdate, n_citation, doi
+The GLKB database is very large (263M+ terms, 14.6M+ relationships). Bad queries can time out (30s limit) or crash. Follow these rules strictly:
+
+### MUST DO
+- Always include an explicit `LIMIT` clause (50-100 typical, max 500). Queries without LIMIT get one injected automatically.
+- Always specify **node labels** (`:Gene`, `:Article`, etc.) and **relationship types** (`:ContainTerm`, etc.) — never use unlabeled `()` or untyped `-[]-`.
+- Use indexed properties for filtering: `Vocabulary.id`, `Article.pubmedid`, `Article.pubdate`, `Article.n_citation`, `Article.doi`.
+- Use `WITH ... LIMIT` between multi-hop MATCH clauses to keep intermediate result sets small.
+- Use `DISTINCT` to avoid duplicates.
+- Use `ORDER BY` with `LIMIT` to get the most important results.
+
+### NEVER DO
+- **Never** use unbounded variable-length paths: `[*]`, `[*..10]`, `[*1..]`. These explode on large graphs. Use fixed-depth like `[*1..2]` at most.
+- **Never** write queries that produce cartesian products (multiple disconnected MATCH patterns without a shared variable). These are rejected automatically.
+- **Never** use `toLower()` or string functions in WHERE clauses on unindexed properties across large node sets — this forces a full scan.
+- **Never** match on `(v:Vocabulary)` without a WHERE filter — there are 263M+ Vocabulary nodes.
+- **Never** use `MATCH (a:Article)-[:ContainTerm]->(v)` without filtering `a` or `v` first — ContainTerm has hundreds of millions of relationships.
+
+### Query timeout behavior
+- Queries are killed after 30 seconds. If a query times out, **do not retry the same query**. Simplify it: add tighter WHERE filters, reduce path depth, or break it into smaller queries.
+
+### Aggregation queries
+- For COUNT/SUM queries on large sets, always add a WHERE filter to narrow the scope first.
+- Prefer `count(DISTINCT x)` over `count(x)` when counting nodes.
 
 ## Available Tools
 

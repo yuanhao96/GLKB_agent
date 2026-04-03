@@ -13,6 +13,7 @@ import asyncio
 import httpx
 import logging
 import os
+import re
 import functools
 import json
 from typing import Literal, Optional, List
@@ -61,13 +62,57 @@ def get_neo4j_driver():
     """Get a Neo4j driver instance."""
     return GraphDatabase.driver(os.getenv("NEO4J_URI"), auth=(os.getenv("NEO4J_USER"), os.getenv("NEO4J_PASSWORD")))
 
-def run_cypher_query(query: str, parameters: dict = None) -> list:
-    """Execute a Cypher query and return results as a list of dicts."""
+CYPHER_QUERY_TIMEOUT = 30  # seconds — kill queries that take longer than this
+CYPHER_MAX_ROWS = 500      # hard cap on returned rows
+CYPHER_DEFAULT_LIMIT = 50  # injected when query has no LIMIT clause
+
+def _has_limit(query: str) -> bool:
+    """Check if a Cypher query already contains a LIMIT clause."""
+    # Strip string literals to avoid false positives
+    stripped = re.sub(r"'[^']*'|\"[^\"]*\"", "", query)
+    return bool(re.search(r'\bLIMIT\b', stripped, re.IGNORECASE))
+
+def _inject_limit(query: str, limit: int = CYPHER_DEFAULT_LIMIT) -> str:
+    """Append a LIMIT clause if the query doesn't have one."""
+    if _has_limit(query):
+        return query
+    return f"{query.rstrip().rstrip(';')}\nLIMIT {limit}"
+
+def _check_explain(session, query: str, parameters: dict) -> Optional[str]:
+    """Run EXPLAIN and warn about cartesian products or missing index usage."""
+    try:
+        result = session.run(f"EXPLAIN {query}", parameters)
+        plan = result.consume().plan
+        if plan is None:
+            return None
+        warnings = []
+        # Walk the plan tree for CartesianProduct operators
+        stack = [plan]
+        while stack:
+            node = stack.pop()
+            op = getattr(node, 'operator_type', '') or ''
+            if 'CartesianProduct' in op:
+                warnings.append("Query plan contains a CartesianProduct — this can be extremely slow on large graphs.")
+            children = getattr(node, 'children', []) or []
+            stack.extend(children)
+        return "; ".join(warnings) if warnings else None
+    except Exception:
+        return None  # don't block execution if EXPLAIN itself fails
+
+def run_cypher_query(query: str, parameters: dict = None, timeout: int = CYPHER_QUERY_TIMEOUT) -> list:
+    """Execute a Cypher query with timeout and row cap. Returns list of dicts."""
     driver = get_neo4j_driver()
     try:
         with driver.session(database=os.getenv("NEO4J_DATABASE"), default_access_mode=READ_ACCESS) as session:
-            result = session.run(query, parameters or {})
-            return [record.data() for record in result]
+            with session.begin_transaction(timeout=timeout) as tx:
+                result = tx.run(query, parameters or {})
+                rows = []
+                for record in result:
+                    rows.append(record.data())
+                    if len(rows) >= CYPHER_MAX_ROWS:
+                        break
+                tx.commit()
+                return rows
     finally:
         driver.close()
 
@@ -306,41 +351,95 @@ async def cite_evidence(
 async def execute_cypher(query: str) -> dict:
     """
     Execute a read-only Cypher query on the GLKB database.
-    
+
+    IMPORTANT GUIDELINES — the database is very large (263M+ terms, 14.6M+ relationships):
+    - ALWAYS include a LIMIT clause (default 50, max 500). Queries without LIMIT will have one added automatically.
+    - NEVER use unanchored patterns like MATCH (a)-[*]-(b) — these explode on large graphs.
+    - NEVER use variable-length paths of unbounded depth (e.g., [*] or [*..10]). Use fixed depth like [*1..2].
+    - USE specific node labels (e.g., :Gene, :Article) instead of unlabeled () patterns.
+    - USE parameterized WHERE clauses to leverage indexes (e.g., WHERE v.name = 'TP53').
+    - Queries are killed after 30 seconds. If your query times out, simplify it.
+
     Args:
         query: A Cypher query string (read-only, no CREATE/DELETE/SET)
-    
+
     Returns:
         dict: Query results
             - success: bool
             - count: number of records returned
-            - results: list of result records
+            - results: list of result records (max 500 rows)
+            - warning: optional warning about query plan issues
             - error: error message (if unsuccessful)
-    
+
     Example queries:
         - "MATCH (a:Article) RETURN a.title, a.pubmedid LIMIT 5"
-        - "MATCH (g:Gene)-[r]->(d:Disease) RETURN g.name, type(r), d.name LIMIT 10"
+        - "MATCH (g:Gene)-[r]->(d:DiseaseOrPhenotypicFeature) RETURN g.name, type(r), d.name LIMIT 10"
     """
-    # Basic safety check - block write operations
+    # Block write operations
     query_upper = query.upper()
-    if any(word in query_upper for word in ["CREATE", "DELETE", "SET", "REMOVE", "MERGE", "DROP"]):
+    if any(word in query_upper for word in ["CREATE", "DELETE", "SET ", "REMOVE", "MERGE", "DROP"]):
         return {
             "success": False,
             "error": "Write operations are not allowed. Only read queries (MATCH, RETURN) are permitted."
         }
-    
-    try:
-        results = run_cypher_query(query)
+
+    # Block obviously dangerous patterns
+    stripped = re.sub(r"'[^']*'|\"[^\"]*\"", "", query)
+    if re.search(r'\[\s*\*\s*\]', stripped):
         return {
+            "success": False,
+            "error": "Unbounded variable-length paths [*] are not allowed — they can scan the entire graph. Use a fixed depth like [*1..2]."
+        }
+
+    # Inject LIMIT if missing
+    original_query = query
+    query = _inject_limit(query)
+    limit_injected = query != original_query
+
+    try:
+        # Run EXPLAIN check first for cartesian products
+        driver = get_neo4j_driver()
+        warning = None
+        try:
+            with driver.session(database=os.getenv("NEO4J_DATABASE"), default_access_mode=READ_ACCESS) as session:
+                warning = _check_explain(session, query, {})
+        finally:
+            driver.close()
+
+        if warning and "CartesianProduct" in warning:
+            return {
+                "success": False,
+                "query": query,
+                "error": f"Query rejected: {warning} Rewrite the query to use explicit joins (e.g., WHERE a.id = b.id) or connected patterns."
+            }
+
+        # Execute with timeout
+        results = await asyncio.to_thread(run_cypher_query, query)
+        response = {
             "success": True,
             "count": len(results),
-            "results": results
+            "results": results,
         }
+        if warning:
+            response["warning"] = warning
+        if limit_injected:
+            response["note"] = f"LIMIT {CYPHER_DEFAULT_LIMIT} was added to your query. Add an explicit LIMIT to control result size."
+        if len(results) >= CYPHER_MAX_ROWS:
+            response["note"] = f"Results truncated at {CYPHER_MAX_ROWS} rows. Add a tighter LIMIT or more specific WHERE clause."
+        return response
+
     except Exception as e:
+        error_str = str(e)
+        if "timeout" in error_str.lower() or "terminated" in error_str.lower():
+            return {
+                "success": False,
+                "query": query,
+                "error": f"Query timed out after {CYPHER_QUERY_TIMEOUT}s. The query is too expensive — simplify it by adding stricter WHERE filters, using specific node labels, or reducing LIMIT."
+            }
         return {
             "success": False,
             "query": query,
-            "error": f"Query failed: {str(e)}"
+            "error": f"Query failed: {error_str}"
         }
 
 

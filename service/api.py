@@ -20,6 +20,7 @@ reorg_path = os.path.join(backend_root, "reorg_glkb_backend")
 if reorg_path not in sys.path:
     sys.path.insert(0, reorg_path)
 
+import asyncio
 import logging
 import json
 import re
@@ -798,14 +799,46 @@ async def stream_process(request: StreamRequest):
                 step_started = {}
                 seen_agents = set()
                 agent_states = {}  # Track state per agent
-                
-                # Stream agent events with detailed information
-                async for event_dict in runner.run_stream(
-                    app_name=app_name,
-                    user_id=user_id,
-                    session_id=session_id,
-                    message=question
-                ):
+
+                # Use a queue + keepalive pattern to prevent worker/proxy timeouts
+                # during long agent runs (e.g. PubMed searches, Cypher queries)
+                KEEPALIVE_INTERVAL = 15  # seconds between heartbeat comments
+                _SENTINEL = object()
+                event_queue = asyncio.Queue()
+
+                async def _produce_events():
+                    """Push agent events into the queue, then signal completion."""
+                    try:
+                        async for ev in runner.run_stream(
+                            app_name=app_name,
+                            user_id=user_id,
+                            session_id=session_id,
+                            message=question
+                        ):
+                            await event_queue.put(ev)
+                    except Exception as exc:
+                        await event_queue.put(exc)
+                    finally:
+                        await event_queue.put(_SENTINEL)
+
+                producer_task = asyncio.create_task(_produce_events())
+
+                while True:
+                    try:
+                        item = await asyncio.wait_for(
+                            event_queue.get(), timeout=KEEPALIVE_INTERVAL
+                        )
+                    except asyncio.TimeoutError:
+                        # No event within the interval — send SSE comment as keepalive
+                        yield ": keepalive\n\n"
+                        continue
+
+                    if item is _SENTINEL:
+                        break
+                    if isinstance(item, Exception):
+                        raise item
+
+                    event_dict = item
                     # Extract event information
                     agent_name = event_dict.get("agent_name", "")
                     event_type = event_dict.get("type", "")
@@ -1163,6 +1196,17 @@ async def stream_process(request: StreamRequest):
                     'content': error_msg,
                     'done': True
                 })
+            finally:
+                # Ensure the producer task is cleaned up
+                try:
+                    if not producer_task.done():
+                        producer_task.cancel()
+                        try:
+                            await producer_task
+                        except (asyncio.CancelledError, Exception):
+                            pass
+                except NameError:
+                    pass
         
         # Return streaming response
         return StreamingResponse(
