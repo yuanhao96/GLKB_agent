@@ -85,6 +85,25 @@ def _get_agent_logger() -> logging.Logger:
 
 logger = _get_agent_logger()
 
+# --- Per-request transcript logger (separate file) ---
+_TRANSCRIPT_LOG_FILE = os.path.join(_LOG_DIR, "transcript.jsonl")
+
+def _get_transcript_logger() -> logging.Logger:
+    """Logger that writes one JSON line per request to transcript.jsonl."""
+    _tl = logging.getLogger("glkb_agent_transcript")
+    if _tl.handlers:
+        return _tl
+    _tl.setLevel(logging.INFO)
+    _tl.propagate = False
+    fh = logging.FileHandler(_TRANSCRIPT_LOG_FILE)
+    fh.setLevel(logging.INFO)
+    # Raw message only — the JSON line itself contains all metadata
+    fh.setFormatter(logging.Formatter("%(message)s"))
+    _tl.addHandler(fh)
+    return _tl
+
+transcript_logger = _get_transcript_logger()
+
 # Import search service for reference generation
 try:
     from app.api.deps import get_search_service
@@ -785,6 +804,7 @@ async def stream_process(request: StreamRequest):
                 invocation_id = None
                 evidence_map = {}  # pmid -> list of {quote, context_type}
                 trajectory_events = []  # raw tool calls for trajectory builder
+                transcript_events = []  # per-request event log for transcript
 
                 # Map agent names to step names
                 agent_step_map = {
@@ -848,10 +868,31 @@ async def stream_process(request: StreamRequest):
                     tool_output = event_dict.get("tool_output", "")
                     timestamp = event_dict.get("timestamp", "")
 
+                    # Record event for transcript log
+                    t_entry = {"ts": timestamp or datetime.utcnow().isoformat(), "agent": agent_name}
+                    if tool_name:
+                        t_entry["tool"] = tool_name
+                        if tool_input:
+                            t_entry["input"] = tool_input if isinstance(tool_input, dict) else str(tool_input)[:500]
+                        if tool_output:
+                            # Truncate large outputs (e.g. full abstracts) to keep log manageable
+                            out = tool_output
+                            if isinstance(out, dict):
+                                out_str = json.dumps(out)
+                                if len(out_str) > 1000:
+                                    t_entry["output_preview"] = out_str[:1000] + "...[truncated]"
+                                else:
+                                    t_entry["output"] = out
+                            else:
+                                t_entry["output_preview"] = str(out)[:1000]
+                    elif content:
+                        t_entry["content_preview"] = str(content)[:500]
+                    transcript_events.append(t_entry)
+
                     # Capture invocation_id from the first event that has one
                     if invocation_id is None and event_dict.get("invocation_id"):
                         invocation_id = event_dict["invocation_id"]
-                    
+
                     # Map agent to step name
                     step_name = agent_step_map.get(agent_name, "Processing")
 
@@ -1087,19 +1128,28 @@ async def stream_process(request: StreamRequest):
 
                 # Extract PMIDs from response.
                 # The structured `references` field is populated by looking for PubMed URLs/PMID-style
-                # markdown links in the final response text.
-                pmid_url_re = re.compile(r"https?://pubmed\.ncbi\.nlm\.nih\.gov/(\d+)/?")
-                pmid_md_re = re.compile(r"\[(\d+)\]\(https?://pubmed\.ncbi\.nlm\.nih\.gov/\d+/?\)")
-                pmids = set(pmid_url_re.findall(final_response or ""))
-                pmids.update(pmid_md_re.findall(final_response or ""))
+                # markdown links in the final response text. Multiple patterns are matched to catch
+                # LLM deviations from the instructed `[PMID](https://pubmed.ncbi.nlm.nih.gov/PMID)` form.
+                pmid_url_re = re.compile(r"(?:https?://)?pubmed\.ncbi\.nlm\.nih\.gov/(\d+)/?")
+                pmid_md_re = re.compile(r"\[(\d+)\]\((?:https?://)?pubmed\.ncbi\.nlm\.nih\.gov/\d+/?\)")
+                pmid_tag_re = re.compile(r"PMID[:\s#]*\s*(\d{4,9})", re.IGNORECASE)
+                pmid_bracket_re = re.compile(r"\[(\d{4,9})\](?!\()")
+
+                # Scan the entire accumulated answer, not only the last part, so
+                # citations surfaced by earlier FinalAnswerAgent emissions aren't lost.
+                scan_text = "\n".join([p for p in response_parts if p]) or (final_response or "")
+                pmids = set(pmid_url_re.findall(scan_text))
+                pmids.update(pmid_md_re.findall(scan_text))
+                pmids.update(pmid_tag_re.findall(scan_text))
+                pmids.update(pmid_bracket_re.findall(scan_text))
                 pmids = sorted([p for p in pmids if p and p.isdigit()])
-                
+
                 # Get article references (list of dicts with evidence)
                 references: List[Dict] = []
                 if pmids and _has_search_service:
                     try:
                         search_service = get_search_service()
-                        article_rows = await search_service.search_articles_by_pmids(pmids[:request.max_articles])
+                        article_rows = await search_service.search_articles_by_pmids(pmids)
                         if article_rows and isinstance(article_rows[0], dict):
                             for r in article_rows:
                                 ref_pmid = str(r.get("pubmedid", r.get("pmid", "")))
@@ -1139,22 +1189,31 @@ async def stream_process(request: StreamRequest):
                             logger.debug(traceback.format_exc())
                         references = []
 
-                # Fallback: if we detected PMIDs but couldn't fetch metadata (import failure,
-                # missing dependencies, Neo4j unavailable), still return a useful reference list.
-                if pmids and not references:
-                    references = [
-                        {
-                            "pmid": pmid,
-                            "title": f"PMID {pmid}",
-                            "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
-                            "n_citation": 0,
-                            "date": None,
-                            "journal": None,
-                            "authors": [],
-                            "evidence": evidence_map.get(pmid, []),
-                        }
-                        for pmid in pmids[:request.max_articles]
-                    ]
+                # Fallback: ensure every inline-cited PMID has a reference entry, even if
+                # search_articles_by_pmids dropped it (not in Neo4j) or the lookup failed
+                # entirely (import error, Neo4j unavailable). Without this, inline citations
+                # can appear in the answer with no matching entry in `references`.
+                found_pmids = {str(r.get("pmid")) for r in references if r.get("pmid")}
+                for pmid in pmids:
+                    if pmid in found_pmids:
+                        continue
+                    references.append({
+                        "pmid": pmid,
+                        "title": f"PMID {pmid}",
+                        "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
+                        "n_citation": 0,
+                        "date": None,
+                        "journal": None,
+                        "authors": [],
+                        "evidence": evidence_map.get(pmid, []),
+                    })
+
+                # Apply max_articles cap at the end, preserving the order of first appearance
+                # of PMIDs in the answer text so the cap doesn't silently drop cited items.
+                if references and request.max_articles:
+                    order = {p: i for i, p in enumerate(pmids)}
+                    references.sort(key=lambda r: order.get(str(r.get("pmid", "")), 10**9))
+                    references = references[:request.max_articles]
                 
                 # Calculate execution time
                 execution_time = time.time() - step_start_time
@@ -1165,6 +1224,21 @@ async def stream_process(request: StreamRequest):
                 # Log completion BEFORE the final yield (generator may be
                 # cancelled by client disconnect after the last yield)
                 logger.info(f"[STREAM COMPLETE] question={question!r} session_id={session_id} time={execution_time:.1f}s refs={len(pmids)}")
+
+                # Write per-request transcript
+                transcript_record = {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "session_id": session_id,
+                    "question": question,
+                    "execution_time": round(execution_time, 2),
+                    "status": "complete",
+                    "n_references": len(pmids),
+                    "events": transcript_events,
+                }
+                try:
+                    transcript_logger.info(json.dumps(transcript_record, default=str))
+                except Exception:
+                    pass
 
                 # Send final completion message
                 yield send_message({
@@ -1190,6 +1264,21 @@ async def stream_process(request: StreamRequest):
                 tb_str = traceback.format_exc()
                 error_msg = f"Error processing question: {str(e)}"
                 logger.error(f"Error in stream_process: {e}", exc_info=True)
+
+                # Write error transcript
+                transcript_record = {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "session_id": session_id,
+                    "question": question,
+                    "execution_time": round(time.time() - step_start_time, 2),
+                    "status": "error",
+                    "error": error_msg,
+                    "events": transcript_events,
+                }
+                try:
+                    transcript_logger.info(json.dumps(transcript_record, default=str))
+                except Exception:
+                    pass
 
                 yield send_message({
                     'step': 'Error',
