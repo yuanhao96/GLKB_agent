@@ -1146,6 +1146,11 @@ async def stream_process(request: StreamRequest):
 
                 # Get article references (list of dicts with evidence)
                 references: List[Dict] = []
+                # pmid -> abstract from Neo4j article rows, used by the post-hoc
+                # evidence-enforcement step below when evidence_map has no entry
+                # for a cited PMID (e.g. the agent named a PMID from its own
+                # memory without calling a retrieval tool).
+                abstract_by_pmid: Dict[str, str] = {}
                 if pmids and _has_search_service:
                     try:
                         search_service = get_search_service()
@@ -1158,6 +1163,9 @@ async def stream_process(request: StreamRequest):
                                     url = r.get("url", "")
                                     url_match = pmid_url_re.search(url)
                                     ref_pmid = url_match.group(1) if url_match else ""
+                                abs_text = (r.get("abstract") or "").strip()
+                                if ref_pmid and abs_text:
+                                    abstract_by_pmid[ref_pmid] = abs_text
                                 references.append({
                                     "pmid": ref_pmid,
                                     "title": r.get("title"),
@@ -1207,6 +1215,46 @@ async def stream_process(request: StreamRequest):
                         "authors": [],
                         "evidence": evidence_map.get(pmid, []),
                     })
+
+                # Post-hoc evidence enforcement.
+                # If a cited PMID reached this point with no evidence (e.g. the
+                # agent named a PMID from its own memory or called a tool that
+                # isn't captured by evidence_map), fall back to the article
+                # abstract. Prefer abstracts already loaded from Neo4j; for
+                # anything still missing, fetch from NCBI in parallel with a
+                # short timeout so a slow NCBI call can't stall the response.
+                _needs_ev = [r for r in references if not r.get("evidence") and r.get("pmid")]
+                for r in _needs_ev:
+                    abs_text = abstract_by_pmid.get(str(r["pmid"]))
+                    if abs_text:
+                        r["evidence"] = [{"quote": abs_text, "context_type": "abstract"}]
+
+                _needs_ev = [r for r in references if not r.get("evidence") and r.get("pmid")]
+                if _needs_ev:
+                    try:
+                        from my_agent.tools import fetch_abstract as _fetch_abs
+                        fetched = await asyncio.wait_for(
+                            asyncio.gather(
+                                *(_fetch_abs(pmid=str(r["pmid"])) for r in _needs_ev),
+                                return_exceptions=True,
+                            ),
+                            timeout=15.0,
+                        )
+                        for r, res in zip(_needs_ev, fetched):
+                            if isinstance(res, Exception) or not isinstance(res, dict):
+                                continue
+                            if not res.get("success"):
+                                continue
+                            abs_text = (res.get("abstract") or "").strip()
+                            if abs_text:
+                                r["evidence"] = [{"quote": abs_text, "context_type": "abstract"}]
+                    except asyncio.TimeoutError:
+                        logger.warning(
+                            "NCBI abstract fallback timed out; %d reference(s) remain without evidence",
+                            len(_needs_ev),
+                        )
+                    except Exception as e:
+                        logger.warning(f"NCBI abstract fallback failed: {e}")
 
                 # Apply max_articles cap at the end, preserving the order of first appearance
                 # of PMIDs in the answer text so the cap doesn't silently drop cited items.
