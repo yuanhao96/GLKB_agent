@@ -598,14 +598,44 @@ async def _fetch_epmc_citation_counts(pmids: List[str], timeout: float = 8.0) ->
     """
     if not pmids:
         return {}
-    # Cap the per-request batch. EPMC accepts up to pageSize=1000, but query
-    # strings over a few thousand chars start to fail.
     pmids = list(pmids)[:200]
     id_clause = " OR ".join(f"EXT_ID:{p}" for p in pmids)
+    return await _query_epmc_counts(
+        query=f"({id_clause}) AND SRC:MED",
+        result_key="pmid",
+        page_size=len(pmids),
+        timeout=timeout,
+    )
+
+
+async def _fetch_epmc_preprint_citation_counts(dois: List[str], timeout: float = 8.0) -> Dict[str, int]:
+    """
+    Look up citedByCount for a batch of bioRxiv/medRxiv preprints via Europe
+    PMC. EPMC indexes preprints under SRC:PPR and populates citedByCount the
+    same way it does for peer-reviewed articles.
+
+    Returns a dict mapping DOI -> citation count. DOIs not found in EPMC are
+    omitted.
+    """
+    if not dois:
+        return {}
+    dois = list(dois)[:200]
+    id_clause = " OR ".join(f'DOI:"{d}"' for d in dois)
+    return await _query_epmc_counts(
+        query=f"({id_clause}) AND SRC:PPR",
+        result_key="doi",
+        page_size=len(dois),
+        timeout=timeout,
+    )
+
+
+async def _query_epmc_counts(query: str, result_key: str, page_size: int, timeout: float) -> Dict[str, int]:
+    """Shared EPMC batch-count query. `result_key` is the field to use as the
+    output-dict key (either "pmid" or "doi")."""
     params = {
-        "query": f"({id_clause}) AND SRC:MED",
+        "query": query,
         "resultType": "lite",
-        "pageSize": str(len(pmids)),
+        "pageSize": str(page_size),
         "format": "json",
     }
     url = f"{_EPMC_SEARCH_URL}?{urllib.parse.urlencode(params)}"
@@ -619,19 +649,19 @@ async def _fetch_epmc_citation_counts(pmids: List[str], timeout: float = 8.0) ->
             data = json.loads(resp.read().decode("utf-8"))
         out: Dict[str, int] = {}
         for item in data.get("resultList", {}).get("result", []) or []:
-            pmid = str(item.get("pmid", ""))
-            if not pmid:
+            key = str(item.get(result_key, ""))
+            if not key:
                 continue
             try:
-                out[pmid] = int(item.get("citedByCount") or 0)
+                out[key] = int(item.get("citedByCount") or 0)
             except (TypeError, ValueError):
-                out[pmid] = 0
+                out[key] = 0
         return out
 
     try:
         return await asyncio.wait_for(asyncio.to_thread(_fetch), timeout=timeout + 2)
     except asyncio.TimeoutError:
-        logger.warning("EPMC citation-count lookup timed out")
+        logger.warning("EPMC citation-count lookup timed out (query=%s)", query[:80])
         return {}
     except (urllib.error.URLError, json.JSONDecodeError) as e:
         logger.warning(f"EPMC citation-count lookup failed: {e}")
@@ -1411,11 +1441,18 @@ async def stream_process(request: StreamRequest):
                     authors = meta.get("authors") or []
                     if isinstance(authors, str):
                         authors = [a.strip() for a in authors.split(";") if a.strip()]
+                    # `citation_count` is populated by the EPMC-backed
+                    # search_biorxiv path; fetch_biorxiv_paper (bioRxiv native
+                    # API) doesn't expose one, so we backfill via EPMC below.
+                    try:
+                        n_citation = int(meta.get("citation_count") or 0)
+                    except (TypeError, ValueError):
+                        n_citation = 0
                     references.append({
                         "pmid": "N/A",
                         "title": title,
                         "url": url,
-                        "n_citation": 0,
+                        "n_citation": n_citation,
                         "date": posted_date,
                         "journal": journal_label,
                         "authors": authors,
@@ -1534,6 +1571,32 @@ async def stream_process(request: StreamRequest):
                             pmid = str(r.get("pmid", ""))
                             if pmid in cit_counts:
                                 r["n_citation"] = cit_counts[pmid]
+
+                # Citation counts for preprint refs that didn't come in via
+                # search_biorxiv (which already carries EPMC citedByCount).
+                # fetch_biorxiv_paper hits the bioRxiv native API, which has
+                # no citation count — so DOI-only preprints land here with
+                # n_citation=0. Backfill via EPMC SRC:PPR.
+                preprint_dois_needing_citations = [
+                    doi for doi in preprint_ids
+                    if not any(
+                        r.get("n_citation") and doi in str(r.get("url", ""))
+                        for r in references
+                    )
+                ]
+                if preprint_dois_needing_citations:
+                    cit_counts = await _fetch_epmc_preprint_citation_counts(
+                        preprint_dois_needing_citations
+                    )
+                    if cit_counts:
+                        for r in references:
+                            url = str(r.get("url", ""))
+                            m = biorxiv_url_re.search(url)
+                            if not m:
+                                continue
+                            doi = re.sub(r"v\d+$", "", m.group(2))
+                            if doi in cit_counts and not r.get("n_citation"):
+                                r["n_citation"] = cit_counts[doi]
 
                 # bioRxiv / medRxiv evidence fallback. Recover the DOI from the
                 # reference URL (preprint entries have pmid="N/A"), then call
