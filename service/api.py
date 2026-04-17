@@ -11,6 +11,9 @@ Usage:
 
 import sys
 import os
+import urllib.parse
+import urllib.request
+import urllib.error
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -577,6 +580,62 @@ _PHASE_ORDER = [
     "Following citation trails",
     "Selecting supporting evidence",
 ]
+
+
+_EPMC_SEARCH_URL = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+
+
+async def _fetch_epmc_citation_counts(pmids: List[str], timeout: float = 8.0) -> Dict[str, int]:
+    """
+    Look up citedByCount for a batch of PubMed IDs via Europe PMC.
+
+    EPMC indexes PubMed (SRC:MED) and exposes a `citedByCount` field that
+    NCBI EFetch does not return. We use this to backfill `n_citation` on
+    reference entries that fell through the GLKB Neo4j enrichment path.
+
+    Returns a dict mapping pmid -> citation count. PMIDs not found in EPMC
+    are omitted.
+    """
+    if not pmids:
+        return {}
+    # Cap the per-request batch. EPMC accepts up to pageSize=1000, but query
+    # strings over a few thousand chars start to fail.
+    pmids = list(pmids)[:200]
+    id_clause = " OR ".join(f"EXT_ID:{p}" for p in pmids)
+    params = {
+        "query": f"({id_clause}) AND SRC:MED",
+        "resultType": "lite",
+        "pageSize": str(len(pmids)),
+        "format": "json",
+    }
+    url = f"{_EPMC_SEARCH_URL}?{urllib.parse.urlencode(params)}"
+
+    def _fetch() -> Dict[str, int]:
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "glkb-agent-service/1.0",
+            "Accept": "application/json",
+        })
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        out: Dict[str, int] = {}
+        for item in data.get("resultList", {}).get("result", []) or []:
+            pmid = str(item.get("pmid", ""))
+            if not pmid:
+                continue
+            try:
+                out[pmid] = int(item.get("citedByCount") or 0)
+            except (TypeError, ValueError):
+                out[pmid] = 0
+        return out
+
+    try:
+        return await asyncio.wait_for(asyncio.to_thread(_fetch), timeout=timeout + 2)
+    except asyncio.TimeoutError:
+        logger.warning("EPMC citation-count lookup timed out")
+        return {}
+    except (urllib.error.URLError, json.JSONDecodeError) as e:
+        logger.warning(f"EPMC citation-count lookup failed: {e}")
+        return {}
 
 
 def _summarize_tool_call(tool_name: str, tool_input: dict, tool_output: dict) -> dict:
@@ -1458,6 +1517,23 @@ async def stream_process(request: StreamRequest):
                         )
                     except Exception as e:
                         logger.warning(f"NCBI metadata+evidence fallback failed: {e}")
+
+                # Citation counts for stub refs. NCBI EFetch does not return
+                # citedByCount, so PMIDs that fell through the GLKB path have
+                # n_citation=0 at this point. Europe PMC indexes PubMed
+                # (SRC:MED) and exposes citation counts — one batched request
+                # covers every stub PMID.
+                pmids_needing_citations = [
+                    str(r["pmid"]) for r in references
+                    if str(r.get("pmid", "")).isdigit() and not r.get("n_citation")
+                ]
+                if pmids_needing_citations:
+                    cit_counts = await _fetch_epmc_citation_counts(pmids_needing_citations)
+                    if cit_counts:
+                        for r in references:
+                            pmid = str(r.get("pmid", ""))
+                            if pmid in cit_counts:
+                                r["n_citation"] = cit_counts[pmid]
 
                 # bioRxiv / medRxiv evidence fallback. Recover the DOI from the
                 # reference URL (preprint entries have pmid="N/A"), then call
