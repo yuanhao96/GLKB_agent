@@ -1376,39 +1376,88 @@ async def stream_process(request: StreamRequest):
                     if abs_text:
                         r["evidence"] = [{"quote": abs_text, "context_type": "abstract"}]
 
-                # PubMed evidence fallback — only for numeric PMIDs. Preprint
-                # references (pmid="N/A") are handled below via bioRxiv.
-                _needs_ev_pubmed = [
-                    r for r in references
-                    if not r.get("evidence")
-                    and r.get("pmid")
-                    and str(r["pmid"]).isdigit()
+                # PubMed metadata + evidence fallback. When GLKB's
+                # search_articles_by_pmids could not fill in a reference (either
+                # because `app.api.deps` failed to import on startup, or because
+                # the PMID is not in GLKB Neo4j), we fall through to a stub with
+                # `title="PMID X"` and empty `authors`. Fetch from NCBI EFetch
+                # to backfill title/authors/journal/year — and opportunistically
+                # backfill evidence in the same request so we only hit NCBI once
+                # per PMID.
+                def _pubmed_ref_gaps(r):
+                    if not (r.get("pmid") and str(r.get("pmid", "")).isdigit()):
+                        return None
+                    gaps = {"title": False, "authors": False, "journal": False,
+                            "date": False, "evidence": False}
+                    t = (r.get("title") or "")
+                    if not t or t.startswith("PMID "):
+                        gaps["title"] = True
+                    if not r.get("authors"):
+                        gaps["authors"] = True
+                    if not r.get("journal"):
+                        gaps["journal"] = True
+                    if not r.get("date"):
+                        gaps["date"] = True
+                    if not r.get("evidence"):
+                        gaps["evidence"] = True
+                    return gaps if any(gaps.values()) else None
+
+                pubmed_fallbacks = [
+                    (r, gaps)
+                    for r in references
+                    for gaps in [_pubmed_ref_gaps(r)]
+                    if gaps is not None
                 ]
-                if _needs_ev_pubmed:
+                if pubmed_fallbacks:
                     try:
                         from my_agent.tools import fetch_abstract as _fetch_abs
                         fetched = await asyncio.wait_for(
                             asyncio.gather(
-                                *(_fetch_abs(pmid=str(r["pmid"])) for r in _needs_ev_pubmed),
+                                *(_fetch_abs(pmid=str(r["pmid"])) for r, _ in pubmed_fallbacks),
                                 return_exceptions=True,
                             ),
                             timeout=15.0,
                         )
-                        for r, res in zip(_needs_ev_pubmed, fetched):
+                        for (r, gaps), res in zip(pubmed_fallbacks, fetched):
                             if isinstance(res, Exception) or not isinstance(res, dict):
                                 continue
                             if not res.get("success"):
                                 continue
-                            abs_text = (res.get("abstract") or "").strip()
-                            if abs_text:
-                                r["evidence"] = [{"quote": abs_text, "context_type": "abstract"}]
+                            if gaps["title"]:
+                                t = (res.get("title") or "").strip()
+                                if t:
+                                    r["title"] = t
+                            if gaps["authors"]:
+                                raw_auths = res.get("authors") or []
+                                flat: List[str] = []
+                                for a in raw_auths:
+                                    if isinstance(a, dict):
+                                        fn = (a.get("ForeName") or a.get("firstName") or a.get("initials") or "").strip()
+                                        ln = (a.get("LastName") or a.get("lastName") or "").strip()
+                                        name = f"{fn} {ln}".strip() or (a.get("fullName") or "").strip()
+                                    elif isinstance(a, str):
+                                        name = a.strip()
+                                    else:
+                                        name = ""
+                                    if name:
+                                        flat.append(name)
+                                if flat:
+                                    r["authors"] = flat
+                            if gaps["journal"] and res.get("journal"):
+                                r["journal"] = res["journal"]
+                            if gaps["date"] and res.get("year"):
+                                r["date"] = res["year"]
+                            if gaps["evidence"]:
+                                abs_text = (res.get("abstract") or "").strip()
+                                if abs_text:
+                                    r["evidence"] = [{"quote": abs_text, "context_type": "abstract"}]
                     except asyncio.TimeoutError:
                         logger.warning(
-                            "NCBI abstract fallback timed out; %d reference(s) remain without evidence",
-                            len(_needs_ev_pubmed),
+                            "NCBI metadata+evidence fallback timed out; %d reference(s) may be incomplete",
+                            len(pubmed_fallbacks),
                         )
                     except Exception as e:
-                        logger.warning(f"NCBI abstract fallback failed: {e}")
+                        logger.warning(f"NCBI metadata+evidence fallback failed: {e}")
 
                 # bioRxiv / medRxiv evidence fallback. Recover the DOI from the
                 # reference URL (preprint entries have pmid="N/A"), then call
