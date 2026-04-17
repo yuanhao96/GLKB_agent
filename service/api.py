@@ -554,11 +554,15 @@ _TOOL_PHASE_MAP = {
     "get_database_schema": "Preparing my approach",
     "article_search": "Searching for relevant articles",
     "search_pubmed": "Searching for relevant articles",
+    "search_biorxiv": "Searching for relevant articles",
+    "browse_biorxiv_recent": "Searching for relevant articles",
     "vocabulary_search": "Exploring the knowledge graph",
     "execute_cypher": "Exploring the knowledge graph",
     "fetch_abstract": "Reading article details",
     "get_fulltext": "Reading article details",
     "comprehensive_report": "Reading article details",
+    "fetch_biorxiv_paper": "Reading article details",
+    "get_biorxiv_fulltext": "Reading article details",
     "find_similar_articles": "Following citation trails",
     "get_citing_articles": "Following citation trails",
     "cite_evidence": "Selecting supporting evidence",
@@ -678,11 +682,41 @@ def _summarize_tool_call(tool_name: str, tool_input: dict, tool_output: dict) ->
         count = out.get("citation_count", "?")
         return {"tool": tool_name, "summary": f"Found articles citing PMID {pmid}", "result": f"{count} citing articles"}
 
+    if tool_name == "search_biorxiv":
+        query = inp.get("query", "")
+        server = inp.get("server", "biorxiv")
+        count = out.get("count", "?")
+        returned = len(out.get("articles", []))
+        return {"tool": tool_name, "summary": f"Searched {server} for: {query}", "result": f"Found {count} preprints ({returned} shown)"}
+
+    if tool_name == "browse_biorxiv_recent":
+        days = inp.get("days", 7)
+        server = inp.get("server", "biorxiv")
+        count = out.get("count", "?")
+        return {"tool": tool_name, "summary": f"Browsed recent {server} preprints (last {days} days)", "result": f"{count} preprints"}
+
+    if tool_name == "fetch_biorxiv_paper":
+        doi = inp.get("doi", "")
+        title = out.get("title", "") if out.get("success") else ""
+        result = {"tool": tool_name, "summary": f"Read preprint {doi}"}
+        if title:
+            result["result"] = title
+        return result
+
+    if tool_name == "get_biorxiv_fulltext":
+        doi = inp.get("doi", "")
+        word_count = out.get("word_count", "")
+        result = {"tool": tool_name, "summary": f"Read full text of preprint {doi}"}
+        if word_count:
+            result["result"] = f"{word_count} words"
+        return result
+
     # cite_evidence is aggregated separately, but handle individual if needed
     if tool_name == "cite_evidence":
         pmid = inp.get("pmid", "")
         ctx = inp.get("context_type", "abstract")
-        return {"tool": tool_name, "summary": f"Selected evidence from PMID {pmid} ({ctx})", "pmid": pmid, "context_type": ctx}
+        label = f"preprint {pmid}" if "/" in str(pmid) else f"PMID {pmid}"
+        return {"tool": tool_name, "summary": f"Selected evidence from {label} ({ctx})", "pmid": pmid, "context_type": ctx}
 
     # Fallback for unknown tools
     return {"tool": tool_name, "summary": f"Called {tool_name}"}
@@ -728,9 +762,10 @@ def _build_trajectory(events: list) -> list:
     # Build aggregated cite_evidence actions
     for pmid, info in cite_counts.items():
         ctx_str = ", ".join(sorted(info["context_types"]))
+        label = f"preprint {pmid}" if "/" in str(pmid) else f"PMID {pmid}"
         phase_actions["Selecting supporting evidence"].append({
             "tool": "cite_evidence",
-            "summary": f"Selected {info['count']} passage{'s' if info['count'] > 1 else ''} from PMID {pmid} ({ctx_str})",
+            "summary": f"Selected {info['count']} passage{'s' if info['count'] > 1 else ''} from {label} ({ctx_str})",
         })
 
     # Build final trajectory, only include phases that have actions
@@ -802,7 +837,8 @@ async def stream_process(request: StreamRequest):
                 response_parts = []
                 final_response = ""
                 invocation_id = None
-                evidence_map = {}  # pmid -> list of {quote, context_type}
+                evidence_map = {}  # pmid OR preprint DOI -> list of {quote, context_type}
+                preprint_metadata = {}  # preprint DOI -> article metadata dict
                 trajectory_events = []  # raw tool calls for trajectory builder
                 transcript_events = []  # per-request event log for transcript
 
@@ -955,6 +991,64 @@ async def stream_process(request: StreamRequest):
                                         "context_type": "abstract",
                                         "auto": True,
                                     })
+
+                    # Auto-capture abstracts + metadata from bioRxiv tool results.
+                    # Preprint references are keyed by DOI (which the agent is
+                    # instructed to pass to cite_evidence) rather than PMID.
+                    if tool_name == "search_biorxiv" and isinstance(tool_output, dict):
+                        for bx in tool_output.get("articles", []) or []:
+                            bx_doi = str(bx.get("doi", ""))
+                            bx_abstract = bx.get("abstract", "")
+                            if bx_doi:
+                                preprint_metadata[bx_doi] = bx
+                                if bx_abstract and not evidence_map.get(bx_doi):
+                                    evidence_map.setdefault(bx_doi, []).append({
+                                        "quote": bx_abstract,
+                                        "context_type": "abstract",
+                                        "auto": True,
+                                    })
+
+                    if tool_name == "browse_biorxiv_recent" and isinstance(tool_output, dict):
+                        for bx in tool_output.get("articles", []) or []:
+                            bx_doi = str(bx.get("doi", ""))
+                            if bx_doi:
+                                preprint_metadata[bx_doi] = bx
+                                bx_abstract = bx.get("abstract", "")
+                                if bx_abstract and not evidence_map.get(bx_doi):
+                                    evidence_map.setdefault(bx_doi, []).append({
+                                        "quote": bx_abstract,
+                                        "context_type": "abstract",
+                                        "auto": True,
+                                    })
+
+                    if tool_name == "fetch_biorxiv_paper" and isinstance(tool_output, dict):
+                        bx_doi = str(tool_output.get("doi", ""))
+                        bx_abstract = tool_output.get("abstract", "")
+                        if bx_doi and tool_output.get("success"):
+                            preprint_metadata[bx_doi] = tool_output
+                            if bx_abstract:
+                                # Replace auto-captured entries with the
+                                # directly-fetched abstract.
+                                evidence_map[bx_doi] = [
+                                    e for e in evidence_map.get(bx_doi, [])
+                                    if not e.get("auto")
+                                ]
+                                evidence_map[bx_doi].append({
+                                    "quote": bx_abstract,
+                                    "context_type": "abstract",
+                                    "auto": True,
+                                })
+
+                    if tool_name == "get_biorxiv_fulltext" and isinstance(tool_output, dict):
+                        bx_doi = str(tool_output.get("doi", ""))
+                        if bx_doi and tool_output.get("success"):
+                            # Keep existing metadata, but record a fulltext flag so
+                            # downstream knows full text was consulted.
+                            meta = preprint_metadata.get(bx_doi, {})
+                            if tool_output.get("title"):
+                                meta.setdefault("title", tool_output["title"])
+                            meta["has_fulltext"] = True
+                            preprint_metadata[bx_doi] = meta
 
                     # Capture tool events for trajectory builder
                     if tool_name:
@@ -1126,23 +1220,49 @@ async def stream_process(request: StreamRequest):
                     for e in evidence_map[ev_pmid]:
                         e.pop("auto", None)
 
-                # Extract PMIDs from response.
-                # The structured `references` field is populated by looking for PubMed URLs/PMID-style
-                # markdown links in the final response text. Multiple patterns are matched to catch
-                # LLM deviations from the instructed `[PMID](https://pubmed.ncbi.nlm.nih.gov/PMID)` form.
+                # Extract article identifiers from the final response. PubMed
+                # articles are referenced by numeric PMID; bioRxiv/medRxiv
+                # preprints are referenced by DOI (10.1101/... or 10.64898/...).
+                # Multiple regex patterns catch LLM deviations from the
+                # instructed citation form.
                 pmid_url_re = re.compile(r"(?:https?://)?pubmed\.ncbi\.nlm\.nih\.gov/(\d+)/?")
                 pmid_md_re = re.compile(r"\[(\d+)\]\((?:https?://)?pubmed\.ncbi\.nlm\.nih\.gov/\d+/?\)")
                 pmid_tag_re = re.compile(r"PMID[:\s#]*\s*(\d{4,9})", re.IGNORECASE)
                 pmid_bracket_re = re.compile(r"\[(\d{4,9})\](?!\()")
 
-                # Scan the entire accumulated answer, not only the last part, so
-                # citations surfaced by earlier FinalAnswerAgent emissions aren't lost.
+                # bioRxiv / medRxiv DOI patterns — URLs and bare DOIs with the
+                # biorxiv/medrxiv prefix.
+                biorxiv_url_re = re.compile(
+                    r"(?:https?://)?(?:www\.)?(biorxiv|medrxiv)\.org/content/(10\.\d+/[0-9.]+(?:v\d+)?)",
+                    re.IGNORECASE,
+                )
+                biorxiv_tag_re = re.compile(
+                    r"\b(bioRxiv|medRxiv)\s*[:#]?\s*(10\.\d+/[0-9.]+(?:v\d+)?)",
+                    re.IGNORECASE,
+                )
+
                 scan_text = "\n".join([p for p in response_parts if p]) or (final_response or "")
-                pmids = set(pmid_url_re.findall(scan_text))
-                pmids.update(pmid_md_re.findall(scan_text))
-                pmids.update(pmid_tag_re.findall(scan_text))
-                pmids.update(pmid_bracket_re.findall(scan_text))
-                pmids = sorted([p for p in pmids if p and p.isdigit()])
+
+                # PubMed IDs
+                pmids_set = set(pmid_url_re.findall(scan_text))
+                pmids_set.update(pmid_md_re.findall(scan_text))
+                pmids_set.update(pmid_tag_re.findall(scan_text))
+                pmids_set.update(pmid_bracket_re.findall(scan_text))
+                pmids = sorted([p for p in pmids_set if p and p.isdigit()])
+
+                # bioRxiv/medRxiv preprints: dict of doi -> server ("biorxiv"/"medrxiv")
+                preprint_ids: Dict[str, str] = {}
+                for server, doi in biorxiv_url_re.findall(scan_text):
+                    doi_clean = re.sub(r"v\d+$", "", doi)
+                    preprint_ids.setdefault(doi_clean, server.lower())
+                for server, doi in biorxiv_tag_re.findall(scan_text):
+                    doi_clean = re.sub(r"v\d+$", "", doi)
+                    preprint_ids.setdefault(doi_clean, server.lower())
+
+                # The SSE payload historically exposed the extracted ids as `pmids`
+                # for logging; keep backwards compat by including preprint DOIs in
+                # the count but leaving the variable name alone.
+                citation_ids = pmids + sorted(preprint_ids.keys())
 
                 # Get article references (list of dicts with evidence)
                 references: List[Dict] = []
@@ -1216,6 +1336,33 @@ async def stream_process(request: StreamRequest):
                         "evidence": evidence_map.get(pmid, []),
                     })
 
+                # Append bioRxiv / medRxiv preprint references. These use the
+                # same schema as PubMed references so the frontend renders them
+                # through the same path — `pmid` is set to "N/A" (the frontend
+                # does not key on it; it parses the trailing segment of `url`
+                # for bookmarks), and `journal` is set to "bioRxiv" or
+                # "medRxiv" so the badge shows the preprint source.
+                for doi, server in sorted(preprint_ids.items()):
+                    meta = preprint_metadata.get(doi, {}) or {}
+                    server = (meta.get("server") or meta.get("source") or server or "biorxiv").lower()
+                    journal_label = "medRxiv" if server == "medrxiv" else "bioRxiv"
+                    url = meta.get("url") or f"https://www.{server}.org/content/{doi}"
+                    title = meta.get("title") or f"{journal_label} preprint {doi}"
+                    posted_date = meta.get("posted_date") or meta.get("date") or None
+                    authors = meta.get("authors") or []
+                    if isinstance(authors, str):
+                        authors = [a.strip() for a in authors.split(";") if a.strip()]
+                    references.append({
+                        "pmid": "N/A",
+                        "title": title,
+                        "url": url,
+                        "n_citation": 0,
+                        "date": posted_date,
+                        "journal": journal_label,
+                        "authors": authors,
+                        "evidence": evidence_map.get(doi, []),
+                    })
+
                 # Post-hoc evidence enforcement.
                 # If a cited PMID reached this point with no evidence (e.g. the
                 # agent named a PMID from its own memory or called a tool that
@@ -1229,18 +1376,25 @@ async def stream_process(request: StreamRequest):
                     if abs_text:
                         r["evidence"] = [{"quote": abs_text, "context_type": "abstract"}]
 
-                _needs_ev = [r for r in references if not r.get("evidence") and r.get("pmid")]
-                if _needs_ev:
+                # PubMed evidence fallback — only for numeric PMIDs. Preprint
+                # references (pmid="N/A") are handled below via bioRxiv.
+                _needs_ev_pubmed = [
+                    r for r in references
+                    if not r.get("evidence")
+                    and r.get("pmid")
+                    and str(r["pmid"]).isdigit()
+                ]
+                if _needs_ev_pubmed:
                     try:
                         from my_agent.tools import fetch_abstract as _fetch_abs
                         fetched = await asyncio.wait_for(
                             asyncio.gather(
-                                *(_fetch_abs(pmid=str(r["pmid"])) for r in _needs_ev),
+                                *(_fetch_abs(pmid=str(r["pmid"])) for r in _needs_ev_pubmed),
                                 return_exceptions=True,
                             ),
                             timeout=15.0,
                         )
-                        for r, res in zip(_needs_ev, fetched):
+                        for r, res in zip(_needs_ev_pubmed, fetched):
                             if isinstance(res, Exception) or not isinstance(res, dict):
                                 continue
                             if not res.get("success"):
@@ -1251,16 +1405,70 @@ async def stream_process(request: StreamRequest):
                     except asyncio.TimeoutError:
                         logger.warning(
                             "NCBI abstract fallback timed out; %d reference(s) remain without evidence",
-                            len(_needs_ev),
+                            len(_needs_ev_pubmed),
                         )
                     except Exception as e:
                         logger.warning(f"NCBI abstract fallback failed: {e}")
 
+                # bioRxiv / medRxiv evidence fallback. Recover the DOI from the
+                # reference URL (preprint entries have pmid="N/A"), then call
+                # fetch_biorxiv_paper in parallel with a bounded timeout.
+                preprint_needs_ev = []
+                for r in references:
+                    if r.get("evidence"):
+                        continue
+                    url = str(r.get("url") or "")
+                    m = biorxiv_url_re.search(url)
+                    if not m:
+                        continue
+                    doi = re.sub(r"v\d+$", "", m.group(2))
+                    preprint_needs_ev.append((r, doi))
+
+                if preprint_needs_ev:
+                    try:
+                        from my_agent.tools import fetch_biorxiv_paper as _fetch_bx
+                        fetched = await asyncio.wait_for(
+                            asyncio.gather(
+                                *(_fetch_bx(doi=doi) for _, doi in preprint_needs_ev),
+                                return_exceptions=True,
+                            ),
+                            timeout=15.0,
+                        )
+                        for (r, _), res in zip(preprint_needs_ev, fetched):
+                            if isinstance(res, Exception) or not isinstance(res, dict):
+                                continue
+                            if not res.get("success"):
+                                continue
+                            abs_text = (res.get("abstract") or "").strip()
+                            if abs_text:
+                                r["evidence"] = [{"quote": abs_text, "context_type": "abstract"}]
+                    except asyncio.TimeoutError:
+                        logger.warning(
+                            "bioRxiv abstract fallback timed out; %d preprint(s) remain without evidence",
+                            len(preprint_needs_ev),
+                        )
+                    except Exception as e:
+                        logger.warning(f"bioRxiv abstract fallback failed: {e}")
+
                 # Apply max_articles cap at the end, preserving the order of first appearance
-                # of PMIDs in the answer text so the cap doesn't silently drop cited items.
+                # in the answer text so the cap doesn't silently drop cited items. For PubMed
+                # articles we key on the pmid field; for preprints (pmid="N/A") we key on the
+                # DOI extracted from the reference URL.
                 if references and request.max_articles:
-                    order = {p: i for i, p in enumerate(pmids)}
-                    references.sort(key=lambda r: order.get(str(r.get("pmid", "")), 10**9))
+                    order = {p: i for i, p in enumerate(citation_ids)}
+
+                    def _ref_order_key(r):
+                        pmid = str(r.get("pmid", ""))
+                        if pmid and pmid != "N/A":
+                            return order.get(pmid, 10**9)
+                        url = str(r.get("url") or "")
+                        m = biorxiv_url_re.search(url)
+                        if m:
+                            doi = re.sub(r"v\d+$", "", m.group(2))
+                            return order.get(doi, 10**9)
+                        return 10**9
+
+                    references.sort(key=_ref_order_key)
                     references = references[:request.max_articles]
                 
                 # Calculate execution time
@@ -1271,7 +1479,7 @@ async def stream_process(request: StreamRequest):
 
                 # Log completion BEFORE the final yield (generator may be
                 # cancelled by client disconnect after the last yield)
-                logger.info(f"[STREAM COMPLETE] question={question!r} session_id={session_id} time={execution_time:.1f}s refs={len(pmids)}")
+                logger.info(f"[STREAM COMPLETE] question={question!r} session_id={session_id} time={execution_time:.1f}s refs={len(citation_ids)} (pmids={len(pmids)} preprints={len(preprint_ids)})")
 
                 # Write per-request transcript
                 transcript_record = {
@@ -1280,7 +1488,7 @@ async def stream_process(request: StreamRequest):
                     "question": question,
                     "execution_time": round(execution_time, 2),
                     "status": "complete",
-                    "n_references": len(pmids),
+                    "n_references": len(citation_ids),
                     "events": transcript_events,
                 }
                 try:

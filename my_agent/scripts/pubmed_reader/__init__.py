@@ -53,6 +53,24 @@ from .comprehensive_report import (
     format_comprehensive_report,
 )
 
+from .search_biorxiv import (
+    search_biorxiv,
+    browse_biorxiv_recent,
+    format_biorxiv_search_results,
+)
+
+from .fetch_biorxiv import (
+    fetch_biorxiv_paper,
+    batch_fetch_biorxiv,
+    format_biorxiv_paper,
+)
+
+from .fetch_biorxiv_fulltext import (
+    get_biorxiv_fulltext,
+    check_fulltext_availability as check_biorxiv_fulltext_availability,
+    format_biorxiv_fulltext,
+)
+
 __all__ = [
     # Search
     'search_pubmed',
@@ -91,4 +109,14 @@ __all__ = [
     'literature_overview',
     'compare_articles',
     'format_comprehensive_report',
+    # bioRxiv/medRxiv
+    'search_biorxiv',
+    'browse_biorxiv_recent',
+    'format_biorxiv_search_results',
+    'fetch_biorxiv_paper',
+    'batch_fetch_biorxiv',
+    'format_biorxiv_paper',
+    'get_biorxiv_fulltext',
+    'check_biorxiv_fulltext_availability',
+    'format_biorxiv_fulltext',
 ]

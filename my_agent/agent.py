@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------
 # Tools (from tools.py)
 # -----------------------------------------
-from tools import glkb_tools, pubmed_tools
+from tools import glkb_tools, pubmed_tools, biorxiv_tools
 
 # -----------------------------------------
 # Model
@@ -101,9 +101,11 @@ def load_skill_from_directory(skill_dir: Path) -> Skill:
 SKILLS_DIR = Path(__file__).parent / "skills"
 kg_skill = load_skill_from_directory(SKILLS_DIR / "glkb_knowledge_graph")
 lit_skill = load_skill_from_directory(SKILLS_DIR / "pubmed_reader")
+biorxiv_skill = load_skill_from_directory(SKILLS_DIR / "biorxiv")
 
 logger.info(f"Loaded skill: {kg_skill.frontmatter.name}")
 logger.info(f"Loaded skill: {lit_skill.frontmatter.name}")
+logger.info(f"Loaded skill: {biorxiv_skill.frontmatter.name}")
 
 # -----------------------------------------
 # Base Instruction
@@ -114,14 +116,15 @@ You are the GLKB biomedical QA assistant. The Genomic Literature Knowledge Base 
 You have access to skills for detailed workflows. Load them as needed:
 - "glkb-knowledge-graph": Cypher query generation, schema navigation, vocabulary mapping for the GLKB Neo4j database
 - "pubmed-reader": Article retrieval strategy using GLKB search and direct PubMed/PMC access
+- "biorxiv": bioRxiv/medRxiv preprint search, metadata retrieval, and full text
 
 WORKFLOW:
 1. Assess the question type:
    - KG-only (counts, lists, schema queries) -> load KG skill only
-   - Needs biomedical explanation or evidence -> load both skills
-   - Ambiguous -> load both skills
+   - Needs biomedical explanation or evidence -> load pubmed-reader; also load biorxiv whenever preprint evidence could help (recency, cutting-edge topics, or when the user provides a bioRxiv/medRxiv DOI/URL)
+   - Ambiguous -> load KG skill and pubmed-reader; add biorxiv if the topic could benefit from preprint coverage
 2. Load relevant skill(s) via load_skill and follow their instructions to query tools
-3. Synthesize a grounded answer using the evidence gathered
+3. Synthesize a grounded answer using the evidence gathered. Preprints and peer-reviewed articles may be cited together.
 
 IMPORTANT:
 - You have access to the full conversation history. For follow-up questions, use context from previous exchanges.
@@ -133,19 +136,30 @@ EVIDENCE AND CITATION WORKFLOW:
 1. After gathering evidence from tools, identify the specific sentences or passages
    that directly support your answer.
 2. For each article you will cite, call `cite_evidence` with:
-   - pmid: the article's PubMed ID
+   - pmid: the article's identifier — PubMed ID for PubMed articles, or the DOI
+     for bioRxiv/medRxiv preprints (the argument name is historical; it accepts
+     either)
    - quote: the EXACT sentence(s) from the tool output (abstract, full text, or
      KG evidence field) — do NOT paraphrase
    - context_type: "abstract", "fulltext", "kg_evidence", or "title"
-3. You MUST call cite_evidence before referencing a PMID in your answer.
+3. You MUST call cite_evidence before referencing an article in your answer.
    Do not cite articles without registering evidence first.
    If you cannot find a specific supporting quote, the system will fall back to
    the article abstract automatically — but specific quotes are always preferred.
 4. Then write your final answer, citing articles inline:
-   [PMID](https://pubmed.ncbi.nlm.nih.gov/PMID)
-   Example: "TP53 plays a key role in apoptosis [38743124](https://pubmed.ncbi.nlm.nih.gov/38743124)."
-5. When summarizing database/graph structure results (not articles), do not cite.
-6. Use markdown headers and bullet points for well-structured answers.
+   - PubMed article:
+     `[PMID](https://pubmed.ncbi.nlm.nih.gov/PMID)`
+     Example: "TP53 plays a key role in apoptosis [38743124](https://pubmed.ncbi.nlm.nih.gov/38743124)."
+   - bioRxiv preprint:
+     `[bioRxiv:DOI](https://www.biorxiv.org/content/DOI)`
+     Example: "Lipid nanoparticles enable efficient CRISPR delivery [bioRxiv:10.1101/2024.01.15.575889](https://www.biorxiv.org/content/10.1101/2024.01.15.575889)."
+   - medRxiv preprint:
+     `[medRxiv:DOI](https://www.medrxiv.org/content/DOI)`
+5. If a preprint has a peer-reviewed journal version (`published` field non-empty),
+   prefer the journal version (via PubMed) unless the user explicitly asked for
+   the preprint.
+6. When summarizing database/graph structure results (not articles), do not cite.
+7. Use markdown headers and bullet points for well-structured answers.
 """
 
 # -----------------------------------------
@@ -162,6 +176,7 @@ root_agent = LlmAgent(
     tools=[
         *glkb_tools,
         *pubmed_tools,
-        SkillToolset(skills=[kg_skill, lit_skill]),
+        *biorxiv_tools,
+        SkillToolset(skills=[kg_skill, lit_skill, biorxiv_skill]),
     ],
 )

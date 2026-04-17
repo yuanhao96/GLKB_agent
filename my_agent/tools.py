@@ -328,7 +328,11 @@ async def cite_evidence(
     article you plan to cite.
 
     Args:
-        pmid: PubMed ID of the source article (e.g. "38743124")
+        pmid: Identifier of the source article. For PubMed articles pass the
+              numeric PMID (e.g. "38743124"). For bioRxiv/medRxiv preprints
+              pass the DOI (e.g. "10.1101/2024.01.15.575889"). The argument
+              name is historical; the downstream pipeline keys on whatever
+              string you provide.
         quote: The exact sentence or passage from the article that serves
                as evidence. Must be copied verbatim from tool output, not
                paraphrased.
@@ -643,5 +647,120 @@ pubmed_tools = [
     find_similar_articles_tool,
     get_citing_articles_tool,
     comprehensive_report_tool,
+]
+
+
+### BIORXIV/MEDRXIV TOOLS (via pubmed-reader-cskill biorxiv scripts) ###
+
+from scripts.pubmed_reader import (
+    search_biorxiv as _search_biorxiv,
+    browse_biorxiv_recent as _browse_biorxiv_recent,
+    fetch_biorxiv_paper as _fetch_biorxiv_paper,
+    get_biorxiv_fulltext as _get_biorxiv_fulltext,
+)
+
+
+@log_tool_call
+async def search_biorxiv(
+    query: str,
+    max_results: int = 20,
+    server: str = "biorxiv",
+) -> dict:
+    """
+    Search bioRxiv or medRxiv for preprints matching a query.
+
+    Args:
+        query: Free-text search query.
+        max_results: Maximum results to return (1-200, default 20).
+        server: "biorxiv" (default) for biology preprints, or "medrxiv" for medical preprints.
+
+    Returns:
+        dict with keys: success, count, articles (list with doi/title/authors/abstract/
+        posted_date/category/url), query_info, error
+    """
+    return await asyncio.to_thread(
+        _search_biorxiv,
+        query=query,
+        max_results=min(max_results, 200),
+        server=server,
+        include_summaries=True,
+    )
+
+
+@log_tool_call
+async def browse_biorxiv_recent(
+    days: int = 7,
+    server: str = "biorxiv",
+    category: Optional[str] = None,
+    max_results: int = 50,
+) -> dict:
+    """
+    Browse recently posted bioRxiv/medRxiv preprints via the official API.
+
+    Args:
+        days: Lookback window, 1-30 days (default 7).
+        server: "biorxiv" (default) or "medrxiv".
+        category: Optional subject filter (e.g., "Genetics", "Neuroscience").
+        max_results: Maximum results to return (default 50).
+
+    Returns:
+        dict with keys: success, count, articles, query_info, error
+    """
+    return await asyncio.to_thread(
+        _browse_biorxiv_recent,
+        days=days,
+        server=server,
+        category=category,
+        max_results=max_results,
+    )
+
+
+@log_tool_call
+async def fetch_biorxiv_paper(doi: str, server: Optional[str] = None) -> dict:
+    """
+    Fetch metadata and abstract for a single bioRxiv/medRxiv preprint by DOI.
+
+    Accepts bare DOIs ("10.1101/2024.01.15.575889") or bioRxiv URLs.
+    If `server` is not supplied, tries bioRxiv first, then medRxiv.
+
+    Args:
+        doi: bioRxiv/medRxiv DOI or URL.
+        server: Optional "biorxiv" or "medrxiv" hint.
+
+    Returns:
+        dict with keys: success, doi, title, authors, abstract, posted_date, year,
+        category, version, license, published (journal version if any), jatsxml,
+        url, pdf_url, server, error
+    """
+    return await asyncio.to_thread(_fetch_biorxiv_paper, doi=doi, server=server)
+
+
+@log_tool_call
+async def get_biorxiv_fulltext(doi: str, server: Optional[str] = None) -> dict:
+    """
+    Retrieve sectioned full text for a bioRxiv/medRxiv preprint (JATS XML preferred,
+    HTML fallback).
+
+    Args:
+        doi: bioRxiv/medRxiv DOI.
+        server: Optional "biorxiv" or "medrxiv" hint.
+
+    Returns:
+        dict with keys: success, doi, title, sections (dict of section_name->text),
+        full_text, figures, references, word_count, format, html_url, pdf_url, error
+    """
+    return await asyncio.to_thread(_get_biorxiv_fulltext, doi=doi, server=server)
+
+
+search_biorxiv_tool = FunctionTool(search_biorxiv)
+browse_biorxiv_recent_tool = FunctionTool(browse_biorxiv_recent)
+fetch_biorxiv_paper_tool = FunctionTool(fetch_biorxiv_paper)
+get_biorxiv_fulltext_tool = FunctionTool(get_biorxiv_fulltext)
+
+biorxiv_tools = [
+    search_biorxiv_tool,
+    browse_biorxiv_recent_tool,
+    fetch_biorxiv_paper_tool,
+    get_biorxiv_fulltext_tool,
 ]
 

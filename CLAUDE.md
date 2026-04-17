@@ -49,13 +49,17 @@ The root agent (`GLKBAgent`) is a single `LlmAgent` defined in `my_agent/agent.p
 ```
 GLKBAgent (gpt-4o, single LLM session)
   ├── Tools (always registered):
-  │     KG:     get_database_schema, execute_cypher, vocabulary_search, article_search
-  │     PubMed: search_pubmed, fetch_abstract, get_fulltext,
-  │             find_similar_articles, get_citing_articles, comprehensive_report
+  │     KG:      get_database_schema, execute_cypher, vocabulary_search, article_search
+  │     PubMed:  search_pubmed, fetch_abstract, get_fulltext,
+  │              find_similar_articles, get_citing_articles, comprehensive_report
+  │     bioRxiv: search_biorxiv, browse_biorxiv_recent,
+  │              fetch_biorxiv_paper, get_biorxiv_fulltext
+  │     Citing:  cite_evidence (accepts PMIDs or bioRxiv/medRxiv DOIs)
   ├── SkillToolset (on-demand instruction loading):
   │     ├── glkb-knowledge-graph  → Cypher workflow, schema, query patterns
-  │     └── pubmed-reader         → Article retrieval strategy, tool selection
-  └── Base instruction: routing + synthesis + citation formatting
+  │     ├── pubmed-reader         → Article retrieval strategy, tool selection
+  │     └── biorxiv               → Preprint search, DOI lookup, full-text parsing
+  └── Base instruction: routing + synthesis + citation formatting (PMID + DOI)
 ```
 
 The agent assesses each question, loads relevant skill instructions on-demand via `load_skill()`, uses the appropriate tools, and synthesizes a cited answer — all in one LLM session.
@@ -72,6 +76,7 @@ Skills use ADK's experimental `SkillToolset` for incremental context loading:
 
 - `my_agent/skills/glkb_knowledge_graph/` — Cypher generation workflow, GLKB schema reference, common query patterns
 - `my_agent/skills/pubmed_reader/` — Article retrieval strategy, tool selection guidance, PubMed API documentation
+- `my_agent/skills/biorxiv/` — bioRxiv/medRxiv preprint search and full-text retrieval strategy
 
 Skills are constructed programmatically via `load_skill_from_directory()` helper in `agent.py` (ADK's `load_skill_from_dir` does not exist in 1.25.1).
 
@@ -116,6 +121,19 @@ Integrated from [pubmed-reader-cskill](https://github.com/yuanhao96/pubmed-reade
 | `comprehensive_report_tool` | `comprehensive_article_report()` | Full analysis: metadata + citations + full text |
 
 The skill includes caching (`scripts/utils/cache_manager.py`) and adaptive rate limiting (`scripts/utils/rate_limiter.py`). Rate limits: 3 req/s without API key, 10 req/s with `NCBI_API_KEY`.
+
+### bioRxiv Skill (`my_agent/skills/biorxiv/`)
+
+Also adapted from [pubmed-reader-cskill](https://github.com/yuanhao96/pubmed-reader-cskill). Provides preprint access via the bioRxiv/medRxiv API and website search. Scripts vendored alongside the PubMed scripts under `my_agent/scripts/pubmed_reader/` (shared `utils/`).
+
+| Tool | Function | Purpose |
+|------|----------|---------|
+| `search_biorxiv` | `search_biorxiv()` | Keyword search on bioRxiv or medRxiv (website parse). |
+| `browse_biorxiv_recent` | `browse_biorxiv_recent()` | Browse preprints posted in the last N days (official API). |
+| `fetch_biorxiv_paper` | `fetch_biorxiv_paper()` | Metadata + abstract for one DOI; auto-detects bioRxiv vs medRxiv. |
+| `get_biorxiv_fulltext` | `get_biorxiv_fulltext()` | Sectioned full text (JATS XML preferred, HTML fallback). |
+
+Preprints are cited with their DOI: `[bioRxiv:10.1101/...](https://www.biorxiv.org/content/10.1101/...)`. The `cite_evidence` `pmid` argument accepts PMIDs or DOIs. In the service JSON response, preprint references use the same schema as PubMed references (`pmid="N/A"`, `journal="bioRxiv"`/`"medRxiv"`, DOI URL in `url`) so the frontend renders them through the existing path.
 
 ## Environment Variables
 
